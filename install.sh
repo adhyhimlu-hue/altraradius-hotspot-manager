@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-APP_DIR="$HOME/freeradius-hotspot"
+APP_DIR="$HOME/altraradius"
 API_DIR="$APP_DIR/radius-api"
 PUBLIC_DIR="$APP_DIR/public"
 DB_NAME="radius_db"
@@ -51,4 +51,4 @@ sudo mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'127.0.0
 sudo mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
 sudo mysql -u root -e "FLUSH PRIVILEGES;"
 
-echo "Selesai! Port: $APP_PORT | Admin: $DEFAULT_ADMIN_USER | Pass: $DEFAULT_ADMIN_PASS | DB Pass: $DB_PASS"
+echo "Instalasi altraRADIUS Selesai! Port: $APP_PORT | Admin: $DEFAULT_ADMIN_USER | Pass: $DEFAULT_ADMIN_PASS | DB Pass: $DB_PASS"
