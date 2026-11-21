@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreeRADIUS Hotspot Core — Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { colors: { cyber: { bg: '#090d16', card: '#111827', cyan: '#00ffcc' } } } }
+    };
+  </script>
+  <style>
+    body { background-color: #090d16; color: #e5e7eb; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .neon-border { border: 1px solid rgba(0, 255, 204, 0.35); box-shadow: 0 0 20px rgba(0, 255, 204, 0.08); }
+    @media print {
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area { position: absolute; left: 0; top: 0; width: 100%; background: #ffffff !important; color: #000000 !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+  <div id="login-view" class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-gray-900/95 rounded-2xl p-6 md:p-8 neon-border space-y-6">
+      <div class="text-center space-y-2">
+        <div class="w-12 h-12 mx-auto rounded-xl bg-[#00ffcc]/10 border border-[#00ffcc]/50 flex items-center justify-center text-[#00ffcc] font-bold text-lg">R3</div>
+        <h1 class="text-xl font-bold text-white">FreeRADIUS Hotspot Core</h1>
+        <p class="text-xs text-gray-400">Masuk menggunakan akun Admin atau Operator</p>
+      </div>
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Base URL API</label>
+          <input type="text" id="login-api-url" value="/api" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#00ffcc] focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Username</label>
+          <input type="text" id="login-username" placeholder="admin" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#00ffcc] focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#00ffcc] focus:outline-none" />
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-[#00ffcc] hover:bg-emerald-300 text-gray-950 font-semibold text-sm transition">Masuk ke Dashboard</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-view" class="hidden min-h-screen flex-col">
+    <header class="border-b border-gray-800 bg-gray-950/90 backdrop-blur sticky top-0 z-30">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-[#00ffcc]/50 flex items-center justify-center text-[#00ffcc] font-bold">R3</div>
+          <div>
+            <h1 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
+              FreeRADIUS Hotspot Core
+              <span id="role-badge" class="text-xs px-2 py-0.5 rounded-full bg-[#00ffcc]/15 text-[#00ffcc] border border-[#00ffcc]/40 uppercase">role</span>
+            </h1>
+            <p class="text-xs text-gray-400">Login sebagai: <strong id="current-user-label" class="text-gray-200">-</strong></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="refreshAllData()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700">↻ Muat Ulang</button>
+          <button onclick="handleLogout()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40">Keluar</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto px-4 py-6 flex-1 space-y-6">
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-gray-900/90 rounded-xl p-4 neon-border">
+          <p class="text-xs uppercase text-gray-400">User Online</p>
+          <p id="stat-online" class="text-2xl font-bold text-[#00ffcc] mt-1">0</p>
+        </div>
+        <div class="bg-gray-900/90 rounded-xl p-4 border border-gray-800">
+          <p class="text-xs uppercase text-gray-400">Total User / Voucher</p>
+          <p id="stat-users" class="text-2xl font-bold text-white mt-1">0</p>
+        </div>
+        <div class="bg-gray-900/90 rounded-xl p-4 border border-gray-800">
+          <p class="text-xs uppercase text-gray-400">Estimasi Nilai Voucher</p>
+          <p id="stat-revenue" class="text-2xl font-bold text-emerald-400 mt-1">Rp 0</p>
+        </div>
+        <div class="bg-gray-900/90 rounded-xl p-4 border border-gray-800">
+          <p class="text-xs uppercase text-gray-400">Router NAS</p>
+          <p id="stat-nas" class="text-2xl font-bold text-sky-400 mt-1">-</p>
+        </div>
+      </section>
+
+      <nav class="flex flex-wrap gap-2 border-b border-gray-800 pb-3">
+        <button onclick="switchTab('sessions')" id="tab-btn-sessions" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-[#00ffcc]/15 text-[#00ffcc] border border-[#00ffcc]/40">Sesi Aktif & CoA</button>
+        <button onclick="switchTab('vouchers')" id="tab-btn-vouchers" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">User & Voucher</button>
+        <button onclick="switchTab('profiles')" id="tab-btn-profiles" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Profil Paket</button>
+        <button onclick="switchTab('nas')" id="tab-btn-nas" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Router NAS</button>
+        <button onclick="switchTab('logs')" id="tab-btn-logs" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Log Auth</button>
+        <button onclick="switchTab('operators')" id="tab-btn-operators" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Kelola Operator</button>
+      </nav>
+
+      <section id="tab-sessions" class="tab-panel space-y-4">
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
+          <div class="p-4 border-b border-gray-800 flex justify-between items-center">
+            <h2 class="text-base font-semibold text-white">Sesi Aktif (radacct)</h2>
+            <button onclick="loadActiveSessions()" class="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200">Segarkan</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800">
+                <tr>
+                  <th class="px-4 py-3">Username</th>
+                  <th class="px-4 py-3">IP Address</th>
+                  <th class="px-4 py-3">MAC</th>
+                  <th class="px-4 py-3">NAS IP</th>
+                  <th class="px-4 py-3">Durasi</th>
+                  <th class="px-4 py-3">Down / Up</th>
+                  <th class="px-4 py-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="sessions-tbody" class="divide-y divide-gray-800/80"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-vouchers" class="tab-panel hidden space-y-6">
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
+          <h2 class="text-base font-semibold text-white mb-3">Generate Voucher Massal</h2>
+          <form onsubmit="handleGenerateVouchers(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+            <div><label class="block text-xs text-gray-400 mb-1">Jumlah</label><input type="number" id="vc-count" value="10" min="1" max="500" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" /></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Prefix</label><input type="text" id="vc-prefix" value="VC-" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" /></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Panjang Kode</label><input type="number" id="vc-length" value="5" min="3" max="12" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" /></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Profil Paket</label><select id="vc-profile" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"></select></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Harga (Rp)</label><input type="number" id="vc-price" value="5000" min="0" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" /></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Password</label><select id="vc-same" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"><option value="true">Sama dengan User</option><option value="false">Acak Terpisah</option></select></div>
+            <div class="sm:col-span-2 lg:col-span-6 flex justify-end pt-2"><button type="submit" class="px-5 py-2 rounded-lg bg-[#00ffcc] hover:bg-emerald-300 text-gray-950 font-semibold text-sm">+ Generate Voucher</button></div>
+          </form>
+        </div>
+
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
+          <div class="p-4 border-b border-gray-800 flex flex-wrap justify-between items-center gap-2">
+            <input type="text" id="search-user" oninput="renderUsersTable()" placeholder="Cari user, paket, atau batch..." class="w-full max-w-xs bg-gray-950 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white" />
+            <div class="flex gap-2">
+              <button onclick="exportUsersCSV()" class="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700">⬇ Ekspor CSV</button>
+              <button onclick="printVouchers()" class="px-3 py-1.5 text-xs rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40">🖨 Cetak</button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800">
+                <tr><th class="px-4 py-3">Username</th><th class="px-4 py-3">Password</th><th class="px-4 py-3">Profil</th><th class="px-4 py-3">Harga</th><th class="px-4 py-3">Batch</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Aksi</th></tr>
+              </thead>
+              <tbody id="users-tbody" class="divide-y divide-gray-800/80"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-profiles" class="tab-panel hidden space-y-6">
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
+          <h2 class="text-base font-semibold text-white mb-3">Simpan Profil Paket</h2>
+          <form onsubmit="handleSaveProfile(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <input type="text" id="prof-name" placeholder="Nama Profil (misal: Paket-2M)" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <input type="text" id="prof-rate" placeholder="Rate Limit (misal: 2M/2M)" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <input type="number" id="prof-session" placeholder="Session-Timeout (detik)" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <input type="number" id="prof-maxall" placeholder="Max-All-Session (detik)" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <input type="number" id="prof-quota" placeholder="Limit Kuota (bytes)" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <div class="sm:col-span-2 lg:col-span-5 flex justify-end"><button type="submit" class="px-5 py-2 rounded-lg bg-[#00ffcc] text-gray-950 font-semibold text-sm">Simpan Profil</button></div>
+          </form>
+        </div>
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800"><tr><th class="px-4 py-3">Grup</th><th class="px-4 py-3">Atribut</th><th class="px-4 py-3">Nilai</th></tr></thead>
+            <tbody id="profiles-tbody" class="divide-y divide-gray-800/80"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tab-nas" class="tab-panel hidden space-y-6">
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 class="text-base font-semibold text-white">Tambah Router NAS MikroTik</h2>
+            <button type="button" onclick="handleTestTelegram(this)" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 transition">✈ Tes Notifikasi Telegram</button>
+          </div>
+          <form onsubmit="handleAddNas(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <input type="text" id="nas-ip" placeholder="IP Router (nasname)" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <input type="text" id="nas-short" placeholder="Shortname" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <input type="text" id="nas-secret" placeholder="Shared Secret" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <input type="text" id="nas-desc" placeholder="Deskripsi" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <div class="sm:col-span-2 lg:col-span-4 flex justify-end"><button type="submit" class="px-5 py-2 rounded-lg bg-[#00ffcc] text-gray-950 font-semibold text-sm">Simpan NAS</button></div>
+          </form>
+        </div>
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800"><tr><th class="px-4 py-3">IP NAS</th><th class="px-4 py-3">Shortname</th><th class="px-4 py-3">Secret</th><th class="px-4 py-3">Deskripsi</th></tr></thead>
+            <tbody id="nas-tbody" class="divide-y divide-gray-800/80"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tab-logs" class="tab-panel hidden">
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800"><tr><th class="px-4 py-3">Waktu</th><th class="px-4 py-3">Username</th><th class="px-4 py-3">Balasan</th></tr></thead>
+            <tbody id="logs-tbody" class="divide-y divide-gray-800/80"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tab-operators" class="tab-panel hidden space-y-6">
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 class="text-base font-semibold text-white">Buat Akun Admin / Operator</h2>
+            <button type="button" onclick="handleTestTelegram(this)" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 transition">✈ Tes Notifikasi Telegram</button>
+          </div>
+          <form onsubmit="handleCreateOperator(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <input type="text" id="op-fullname" placeholder="Nama Lengkap" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <input type="text" id="op-username" placeholder="Username Login" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <input type="password" id="op-password" placeholder="Password" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+            <select id="op-role" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+              <option value="operator">Operator (Voucher & Sesi)</option>
+              <option value="admin">Admin (Akses Penuh)</option>
+            </select>
+            <div class="sm:col-span-2 lg:col-span-4 flex justify-end"><button type="submit" class="px-5 py-2 rounded-lg bg-[#00ffcc] text-gray-950 font-semibold text-sm">+ Tambah Akun</button></div>
+          </form>
+        </div>
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800"><tr><th class="px-4 py-3">Username</th><th class="px-4 py-3">Nama Lengkap</th><th class="px-4 py-3">Role</th><th class="px-4 py-3 text-right">Aksi</th></tr></thead>
+            <tbody id="operators-tbody" class="divide-y divide-gray-800/80"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="print-area" class="hidden p-4"></div>
+
+  <script>
+    let API_BASE_URL = localStorage.getItem('radius_api_url') || '/api';
+    let JWT_TOKEN = localStorage.getItem('radius_jwt_token') || '';
+    let CURRENT_USER = JSON.parse(localStorage.getItem('radius_current_user') || 'null');
+    let state = { users: [], profiles: [], nas: [], sessions: [], logs: [], operators: [] };
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-950/95 border-emerald-500/60 text-emerald-200',
+        error: 'bg-rose-950/95 border-rose-500/60 text-rose-200',
+        info: 'bg-gray-900/95 border-[#00ffcc]/50 text-gray-100'
+      };
+      toast.className = `px-4 py-3 rounded-lg border text-xs shadow-lg transition-opacity duration-300 ${colors[type] || colors.info}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 4000);
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function formatBytes(bytes) {
+      const num = Number(bytes) || 0;
+      if (!num) return '0 B';
+      const k = 1024, sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(num) / Math.log(k));
+      return parseFloat((num / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    function formatDuration(sec) {
+      const s = Number(sec) || 0;
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), rem = s % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
+    }
+    function formatRupiah(num) { return 'Rp ' + (Number(num) || 0).toLocaleString('id-ID'); }
+
+    async function apiFetch(endpoint, options = {}) {
+      const headers = { 'Content-Type': 'application/json', ...(JWT_TOKEN ? { 'Authorization': `Bearer ${JWT_TOKEN}` } : {}), ...(options.headers || {}) };
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) { handleLogout(false); throw new Error('Sesi login berakhir. Silakan login kembali.'); }
+      if (!res.ok) throw new Error(data.error || `HTTP Error ${res.status}`);
+      return data;
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      API_BASE_URL = document.getElementById('login-api-url').value.trim().replace(/\/$/, '') || '/api';
+      localStorage.setItem('radius_api_url', API_BASE_URL);
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/login`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login gagal');
+        JWT_TOKEN = data.token; CURRENT_USER = data.user;
+        localStorage.setItem('radius_jwt_token', JWT_TOKEN);
+        localStorage.setItem('radius_current_user', JSON.stringify(CURRENT_USER));
+        showToast(`Selamat datang, ${CURRENT_USER.fullName} (${CURRENT_USER.role})`, 'success');
+        enterApp();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    function handleLogout(notify = true) {
+      JWT_TOKEN = ''; CURRENT_USER = null;
+      localStorage.removeItem('radius_jwt_token'); localStorage.removeItem('radius_current_user');
+      document.getElementById('app-view').classList.add('hidden');
+      document.getElementById('app-view').classList.remove('flex');
+      document.getElementById('login-view').classList.remove('hidden');
+      if (notify) showToast('Anda telah keluar', 'info');
+    }
+
+    function applyRolePermissions() {
+      const isAdmin = CURRENT_USER?.role === 'admin';
+      document.querySelectorAll('[data-role="admin"]').forEach(el => { el.style.display = isAdmin ? '' : 'none'; });
+    }
+
+    function enterApp() {
+      document.getElementById('login-view').classList.add('hidden');
+      const appView = document.getElementById('app-view');
+      appView.classList.remove('hidden'); appView.classList.add('flex');
+      document.getElementById('current-user-label').textContent = `${CURRENT_USER?.fullName || '-'} (@${CURRENT_USER?.username || '-'})`;
+      document.getElementById('role-badge').textContent = CURRENT_USER?.role || 'operator';
+      applyRolePermissions(); switchTab('sessions'); refreshAllData();
+    }
+
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+      document.querySelectorAll('.tab-btn').forEach(b => { b.className = 'tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800'; });
+      document.getElementById(`tab-btn-${tabName}`).className = 'tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-[#00ffcc]/15 text-[#00ffcc] border border-[#00ffcc]/40';
+    }
+
+    async function loadActiveSessions() {
+      const res = await apiFetch('/sessions/active');
+      state.sessions = res.data || [];
+      document.getElementById('stat-online').textContent = state.sessions.length;
+      const tbody = document.getElementById('sessions-tbody');
+      tbody.innerHTML = state.sessions.length ? state.sessions.map(s => `
+        <tr class="hover:bg-gray-800/40">
+          <td class="px-4 py-3 font-semibold text-[#00ffcc]">${escapeHtml(s.username)}</td>
+          <td class="px-4 py-3 font-mono text-xs">${escapeHtml(s.ip_address || '-')}</td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-400">${escapeHtml(s.mac_address || '-')}</td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-400">${escapeHtml(s.nasipaddress || '-')}</td>
+          <td class="px-4 py-3 text-xs">${formatDuration(s.uptime_seconds)}</td>
+          <td class="px-4 py-3 text-xs"><span class="text-emerald-400">↓ ${formatBytes(s.download_bytes)}</span> / <span class="text-sky-400">↑ ${formatBytes(s.upload_bytes)}</span></td>
+          <td class="px-4 py-3 text-right"><button onclick="disconnectSession('${escapeHtml(s.username)}', '${escapeHtml(s.nasipaddress)}', '${escapeHtml(s.acctsessionid)}')" class="px-2.5 py-1 text-xs rounded bg-rose-500/20 text-rose-300 border border-rose-500/40">Putus</button></td>
+        </tr>
+      `).join('') : '<tr><td colspan="7" class="px-4 py-6 text-center text-gray-500">Tidak ada sesi aktif</td></tr>';
+    }
+
+    async function loadUsers() {
+      const res = await apiFetch('/users');
+      state.users = res.data || [];
+      document.getElementById('stat-users').textContent = state.users.length;
+      const total = state.users.reduce((a, b) => a + (Number(b.price) || 0), 0);
+      document.getElementById('stat-revenue').textContent = formatRupiah(total);
+      renderUsersTable();
+    }
+
+    function renderUsersTable() {
+      const kw = (document.getElementById('search-user').value || '').toLowerCase();
+      const list = state.users.filter(u => (u.username || '').toLowerCase().includes(kw) || (u.profile || '').toLowerCase().includes(kw) || (u.batch_code || '').toLowerCase().includes(kw));
+      const isAdmin = CURRENT_USER?.role === 'admin';
+      const tbody = document.getElementById('users-tbody');
+      tbody.innerHTML = list.length ? list.map(u => `
+        <tr class="hover:bg-gray-800/40">
+          <td class="px-4 py-3 font-mono font-semibold text-white">${escapeHtml(u.username)}</td>
+          <td class="px-4 py-3 font-mono text-gray-400">${escapeHtml(u.password)}</td>
+          <td class="px-4 py-3 text-xs text-sky-300">${escapeHtml(u.profile || '-')}</td>
+          <td class="px-4 py-3 text-xs text-emerald-400">${formatRupiah(u.price)}</td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-400">${escapeHtml(u.batch_code || '-')}</td>
+          <td class="px-4 py-3 text-xs">${escapeHtml(u.status || 'unused')}</td>
+          <td class="px-4 py-3 text-right">${isAdmin ? `<button onclick="deleteUser('${escapeHtml(u.username)}')" class="px-2.5 py-1 text-xs rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">Hapus</button>` : '<span class="text-xs text-gray-600">-</span>'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="7" class="px-4 py-6 text-center text-gray-500">Belum ada voucher</td></tr>';
+    }
+
+    async function loadProfiles() {
+      const res = await apiFetch('/profiles');
+      state.profiles = res.data || [];
+      const select = document.getElementById('vc-profile');
+      const groups = [...new Set(state.profiles.map(p => p.groupname))];
+      select.innerHTML = '<option value="">-- Pilih Paket --</option>' + groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
+      if (CURRENT_USER?.role === 'admin') {
+        document.getElementById('profiles-tbody').innerHTML = state.profiles.map(p => `<tr><td class="px-4 py-3 font-semibold text-white">${escapeHtml(p.groupname)}</td><td class="px-4 py-3 font-mono text-xs text-[#00ffcc]">${escapeHtml(p.attribute)}</td><td class="px-4 py-3 font-mono text-xs">${escapeHtml(p.value)}</td></tr>`).join('');
+      }
+    }
+
+    async function loadNas() {
+      if (CURRENT_USER?.role !== 'admin') { document.getElementById('stat-nas').textContent = 'Admin'; return; }
+      const res = await apiFetch('/nas');
+      state.nas = res.data || [];
+      document.getElementById('stat-nas').textContent = state.nas.length;
+      document.getElementById('nas-tbody').innerHTML = state.nas.map(n => `<tr><td class="px-4 py-3 font-mono text-[#00ffcc]">${escapeHtml(n.nasname)}</td><td class="px-4 py-3">${escapeHtml(n.shortname || '-')}</td><td class="px-4 py-3 font-mono text-xs text-gray-400">${escapeHtml(n.secret)}</td><td class="px-4 py-3 text-xs text-gray-400">${escapeHtml(n.description || '-')}</td></tr>`).join('');
+    }
+
+    async function loadAuthLogs() {
+      const res = await apiFetch('/logs/auth');
+      state.logs = res.data || [];
+      document.getElementById('logs-tbody').innerHTML = state.logs.map(l => `<tr><td class="px-4 py-3 text-xs text-gray-400">${new Date(l.authdate).toLocaleString('id-ID')}</td><td class="px-4 py-3 font-mono text-white">${escapeHtml(l.username)}</td><td class="px-4 py-3 text-xs">${escapeHtml(l.reply)}</td></tr>`).join('');
+    }
+
+    async function loadOperators() {
+      if (CURRENT_USER?.role !== 'admin') return;
+      const res = await apiFetch('/operators');
+      state.operators = res.data || [];
+      document.getElementById('operators-tbody').innerHTML = state.operators.map(op => `
+        <tr>
+          <td class="px-4 py-3 font-mono text-[#00ffcc]">${escapeHtml(op.username)}</td>
+          <td class="px-4 py-3 text-white">${escapeHtml(op.full_name)}</td>
+          <td class="px-4 py-3 text-xs uppercase">${escapeHtml(op.role)}</td>
+          <td class="px-4 py-3 text-right">${op.id !== CURRENT_USER.id ? `<button onclick="deleteOperator(${op.id})" class="px-2.5 py-1 text-xs rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">Hapus</button>` : '<span class="text-xs text-gray-500">Aktif</span>'}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function refreshAllData() {
+      try { await Promise.all([loadActiveSessions(), loadUsers(), loadProfiles(), loadNas(), loadAuthLogs(), loadOperators()]); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function handleGenerateVouchers(e) {
+      e.preventDefault();
+      try {
+        const res = await apiFetch('/vouchers/generate', {
+          method: 'POST',
+          body: JSON.stringify({
+            count: Number(document.getElementById('vc-count').value), prefix: document.getElementById('vc-prefix').value,
+            length: Number(document.getElementById('vc-length').value), profile: document.getElementById('vc-profile').value,
+            price: Number(document.getElementById('vc-price').value), sameUserPass: document.getElementById('vc-same').value === 'true'
+          })
+        });
+        showToast(`Berhasil membuat ${res.count} voucher (${res.batchCode})`, 'success');
+        await loadUsers();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function deleteUser(username) {
+      if (!confirm(`Hapus user "${username}"?`)) return;
+      try { await apiFetch(`/users/${encodeURIComponent(username)}`, { method: 'DELETE' }); showToast(`User ${username} dihapus`, 'success'); await loadUsers(); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function handleSaveProfile(e) {
+      e.preventDefault();
+      try {
+        await apiFetch('/profiles', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: document.getElementById('prof-name').value.trim(), rateLimit: document.getElementById('prof-rate').value.trim(),
+            sessionTimeout: document.getElementById('prof-session').value || null, maxAllSession: document.getElementById('prof-maxall').value || null,
+            dataLimitBytes: document.getElementById('prof-quota').value || null
+          })
+        });
+        showToast('Profil paket disimpan', 'success'); e.target.reset(); await loadProfiles();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function handleAddNas(e) {
+      e.preventDefault();
+      try {
+        await apiFetch('/nas', {
+          method: 'POST',
+          body: JSON.stringify({
+            nasname: document.getElementById('nas-ip').value.trim(), shortname: document.getElementById('nas-short').value.trim(),
+            secret: document.getElementById('nas-secret').value.trim(), description: document.getElementById('nas-desc').value.trim()
+          })
+        });
+        showToast('Router NAS ditambahkan', 'success'); e.target.reset(); await loadNas();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function disconnectSession(username, nasipaddress, acctsessionid) {
+      if (!confirm(`Putus sesi "${username}"?`)) return;
+      try {
+        await apiFetch('/sessions/disconnect', { method: 'POST', body: JSON.stringify({ username, nasipaddress, acctsessionid }) });
+        showToast(`Perintah putus sesi ${username} dikirim`, 'success'); setTimeout(loadActiveSessions, 1500);
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function handleTestTelegram(btnEl) {
+      const originalText = btnEl ? btnEl.textContent : '';
+      if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Mengirim tes...'; }
+      try {
+        const res = await apiFetch('/notifications/test', { method: 'POST', body: JSON.stringify({}) });
+        showToast(res.message || 'Pesan uji Telegram berhasil dikirim', 'success');
+      } catch (err) { showToast(err.message, 'error'); }
+      finally { if (btnEl) { btnEl.disabled = false; btnEl.textContent = originalText; } }
+    }
+
+    async function handleCreateOperator(e) {
+      e.preventDefault();
+      try {
+        await apiFetch('/operators', {
+          method: 'POST',
+          body: JSON.stringify({
+            fullName: document.getElementById('op-fullname').value.trim(), username: document.getElementById('op-username').value.trim(),
+            password: document.getElementById('op-password').value, role: document.getElementById('op-role').value
+          })
+        });
+        showToast('Akun operator berhasil dibuat', 'success'); e.target.reset(); await loadOperators();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function deleteOperator(id) {
+      if (!confirm('Hapus akun operator ini?')) return;
+      try { await apiFetch(`/operators/${id}`, { method: 'DELETE' }); showToast('Akun operator dihapus', 'success'); await loadOperators(); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    function exportUsersCSV() {
+      if (!state.users.length) return showToast('Tidak ada data', 'error');
+      const rows = [['Username', 'Password', 'Profil', 'Harga', 'Batch', 'Status']];
+      state.users.forEach(u => rows.push([u.username, u.password, u.profile || '', u.price || 0, u.batch_code || '', u.status || 'unused']));
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `voucher_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    }
+
+    function printVouchers() {
+      if (!state.users.length) return showToast('Tidak ada voucher', 'error');
+      const area = document.getElementById('print-area');
+      area.classList.remove('hidden');
+      area.innerHTML = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-family:monospace;">` +
+        state.users.map(v => `<div style="border:1px dashed #333;padding:8px;text-align:center;"><div style="font-size:10px;font-weight:bold;">VOUCHER HOTSPOT</div><div style="font-size:13px;font-weight:bold;">${escapeHtml(v.username)}</div>${v.username !== v.password ? `<div style="font-size:11px;">Pass: ${escapeHtml(v.password)}</div>` : ''}<div style="font-size:10px;">${escapeHtml(v.profile || '-')} • ${formatRupiah(v.price)}</div></div>`).join('') + `</div>`;
+      window.print(); area.classList.add('hidden');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('login-api-url').value = API_BASE_URL;
+      if (JWT_TOKEN && CURRENT_USER) enterApp();
+    });
+  </script>
+</body>
+</html>
