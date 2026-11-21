@@ -1,5 +1,4 @@
-# altraradius-hotspot-manager
-# FreeRADIUS Hotspot Core — Manager
+# altraRADIUS Hotspot Core — Manager
 
 Sistem manajemen **FreeRADIUS 3** berbasis web untuk pengelolaan voucher hotspot MikroTik, profil bandwidth/kuota, pemantauan sesi aktif (*accounting*), pemutusan sesi jarak jauh (*CoA Disconnect*), serta notifikasi otomatis ke bot Telegram[cite: 5, 6, 7].
 
