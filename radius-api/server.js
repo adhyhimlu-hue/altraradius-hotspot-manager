@@ -10,7 +10,7 @@ const TelegramNotifier = require('./telegramNotifier');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change_this_jwt_secret';
@@ -208,6 +208,89 @@ app.post('/api/vouchers/generate', authMiddleware, requireRole('admin', 'operato
   } finally { conn.release(); }
 });
 
+app.post('/api/vouchers/import', authMiddleware, requireRole('admin', 'operator'), async (req, res) => {
+  const { users, defaultProfile = '', overwrite = false } = req.body;
+  if (!Array.isArray(users) || users.length === 0) {
+    return res.status(400).json({ error: 'Data user/voucher kosong atau tidak valid' });
+  }
+
+  const batchCode = `IMP-${Date.now().toString().slice(-6)}`;
+  const conn = await pool.getConnection();
+  let imported = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  try {
+    await conn.beginTransaction();
+
+    for (const item of users) {
+      const username = String(item.username || '').trim();
+      const password = String(item.password || username).trim();
+      const profile = String(item.profile || defaultProfile || '').trim();
+      const price = Math.max(0, Number(item.price) || 0);
+      const itemBatch = String(item.batch || item.batch_code || batchCode).trim();
+      const rawStatus = String(item.status || 'unused').trim().toLowerCase();
+      const status = ['unused', 'active', 'expired'].includes(rawStatus) ? rawStatus : 'unused';
+
+      if (!username || !password || !profile) {
+        skipped++;
+        continue;
+      }
+
+      const [existing] = await conn.query(
+        "SELECT id FROM radcheck WHERE username = ? AND attribute = 'Cleartext-Password' LIMIT 1",
+        [username]
+      );
+
+      if (existing.length > 0) {
+        if (!overwrite) {
+          skipped++;
+          continue;
+        }
+        await conn.query(
+          "UPDATE radcheck SET value = ? WHERE username = ? AND attribute = 'Cleartext-Password'",
+          [password, username]
+        );
+        await conn.query('DELETE FROM radusergroup WHERE username = ?', [username]);
+        await conn.query('INSERT INTO radusergroup (username, groupname, priority) VALUES (?, ?, 1)', [username, profile]);
+        await conn.query(
+          `INSERT INTO app_vouchers_meta (username, profile_name, price, batch_code, status)
+           VALUES (?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE profile_name = VALUES(profile_name), price = VALUES(price), batch_code = VALUES(batch_code), status = VALUES(status)`,
+          [username, profile, price, itemBatch, status]
+        );
+        updated++;
+      } else {
+        await conn.query(
+          "INSERT INTO radcheck (username, attribute, op, value) VALUES (?, 'Cleartext-Password', ':=', ?)",
+          [username, password]
+        );
+        await conn.query('INSERT INTO radusergroup (username, groupname, priority) VALUES (?, ?, 1)', [username, profile]);
+        await conn.query(
+          'INSERT INTO app_vouchers_meta (username, profile_name, price, batch_code, status) VALUES (?, ?, ?, ?, ?)',
+          [username, profile, price, itemBatch, status]
+        );
+        imported++;
+      }
+    }
+
+    await conn.commit();
+    res.json({
+      success: true,
+      imported,
+      updated,
+      skipped,
+      batchCode,
+      message: `Import selesai: ${imported} baru, ${updated} diperbarui, ${skipped} dilewati`
+    });
+  } catch (err) {
+    await conn.rollback();
+    res.status(500).json({ error: err.message });
+  } finally {
+    conn.release();
+  }
+});
+
 app.delete('/api/users/:username', authMiddleware, requireRole('admin'), async (req, res) => {
   const { username } = req.params;
   const conn = await pool.getConnection();
@@ -277,7 +360,7 @@ app.post('/api/sessions/disconnect', authMiddleware, requireRole('admin', 'opera
 
 app.post('/api/notifications/test', authMiddleware, requireRole('admin'), async (req, res) => {
   if (!notifier.enabled) return res.status(400).json({ error: 'TELEGRAM_BOT_TOKEN atau TELEGRAM_CHAT_ID belum diatur di .env' });
-  const ok = await notifier.sendMessage('🧪 <b>Tes Notifikasi FreeRADIUS</b>\nKoneksi bot Telegram dari backend Node.js berhasil.');
+  const ok = await notifier.sendMessage('🧪 <b>Tes Notifikasi altraRADIUS</b>\nKoneksi bot Telegram dari backend Node.js berhasil.');
   if (!ok) return res.status(502).json({ error: 'Gagal mengirim pesan uji ke Telegram' });
   res.json({ success: true, message: 'Pesan uji berhasil dikirim ke Telegram' });
 });
@@ -285,5 +368,5 @@ app.post('/api/notifications/test', authMiddleware, requireRole('admin'), async 
 const PORT = process.env.PORT || 3030;
 ensureDefaultAdmin().then(async () => {
   await notifier.start();
-  app.listen(PORT, () => console.log(`RADIUS Management API berjalan di port ${PORT}`));
+  app.listen(PORT, () => console.log(`altraRADIUS Management API berjalan di port ${PORT}`));
 });

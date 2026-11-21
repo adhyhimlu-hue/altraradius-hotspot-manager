@@ -189,7 +189,7 @@ class TelegramNotifier {
       return;
     }
     await this.initBaseline();
-    await this.sendMessage('🤖 <b>FreeRADIUS Hotspot Notifier Aktif</b>');
+    await this.sendMessage('🤖 <b>altraRADIUS Notifier Aktif</b>');
     this.pollTimer = setInterval(() => this.checkSessions(), this.pollIntervalMs);
     this.nasTimer = setInterval(() => this.checkNasStatus(), this.nasPingIntervalMs);
   }
