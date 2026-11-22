@@ -44,11 +44,27 @@ ENVEOF
 cd "$API_DIR"
 npm install --omit=dev
 
+sudo systemctl enable --now mariadb || true
 sudo mysql -u root < "$APP_DIR/schema.sql"
 sudo mysql -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';"
 sudo mysql -u root -e "CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
+sudo mysql -u root -e "ALTER USER '$DB_USER'@'127.0.0.1' IDENTIFIED BY '$DB_PASS';"
+sudo mysql -u root -e "ALTER USER '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';"
 sudo mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'127.0.0.1';"
 sudo mysql -u root -e "GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';"
 sudo mysql -u root -e "FLUSH PRIVILEGES;"
+
+if [ -d /etc/freeradius/3.0/mods-available ] && [ -d /etc/freeradius/3.0/mods-enabled ]; then
+  [ ! -f /etc/freeradius/3.0/mods-available/sql.bak ] && sudo cp /etc/freeradius/3.0/mods-available/sql /etc/freeradius/3.0/mods-available/sql.bak
+  sudo ln -sf /etc/freeradius/3.0/mods-available/sql /etc/freeradius/3.0/mods-enabled/sql
+  sudo sed -i 's|^[[:space:]]*#*[[:space:]]*driver[[:space:]]*=.*|        driver = "rlm_sql_mysql"|' /etc/freeradius/3.0/mods-available/sql
+  sudo sed -i 's|^[[:space:]]*#*[[:space:]]*dialect[[:space:]]*=.*|        dialect = "mysql"|' /etc/freeradius/3.0/mods-available/sql
+  sudo sed -i 's|^[[:space:]]*#*[[:space:]]*server[[:space:]]*=.*|        server = "127.0.0.1"|' /etc/freeradius/3.0/mods-available/sql
+  sudo sed -i 's|^[[:space:]]*#*[[:space:]]*port[[:space:]]*=.*|        port = 3306|' /etc/freeradius/3.0/mods-available/sql
+  sudo sed -i 's|^[[:space:]]*#*[[:space:]]*login[[:space:]]*=.*|        login = "radius"|' /etc/freeradius/3.0/mods-available/sql
+  sudo sed -i "s|^[[:space:]]*#*[[:space:]]*password[[:space:]]*=.*|        password = "$DB_PASS"|" /etc/freeradius/3.0/mods-available/sql
+  sudo sed -i 's|^[[:space:]]*#*[[:space:]]*radius_db[[:space:]]*=.*|        radius_db = "radius_db"|' /etc/freeradius/3.0/mods-available/sql
+  sudo sed -i 's|^[[:space:]]*#*[[:space:]]*read_clients[[:space:]]*=.*|        read_clients = yes|' /etc/freeradius/3.0/mods-available/sql
+fi
 
 echo "Instalasi altraRADIUS Selesai! Port: $APP_PORT | Admin: $DEFAULT_ADMIN_USER | Pass: $DEFAULT_ADMIN_PASS | DB Pass: $DB_PASS"

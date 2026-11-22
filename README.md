@@ -31,7 +31,7 @@ Sistem manajemen **FreeRADIUS 3** berbasis web untuk pengelolaan voucher hotspot
 altraradius/
 ├── .gitignore
 ├── README.md
-├── install.sh                      # Skrip instalasi otomatis aplikasi & database
+├── install.sh                      # Skrip instalasi otomatis aplikasi, DB & modul SQL FreeRADIUS
 ├── schema.sql                      # Skema database MariaDB/MySQL (radius_db)
 ├── public/
 │   └── index.html                  # Antarmuka Web Dashboard (Tailwind CSS)
@@ -49,21 +49,21 @@ altraradius/
 * **Sistem Operasi**: Debian 11/12, Ubuntu 20.04/22.04/24.04, atau Armbian (ARM64/x86_64).
 * **Spesifikasi Minimum Server**: RAM minimal 512 MB–1 GB dan ruang penyimpanan kosong minimal 2 GB.
 * **Paket Perangkat Lunak**:
-  * **Node.js (v18+)**, **npm**, dan **PM2** (`npm install -g pm2`)
+  * **Node.js (v20 LTS)**, **npm**, dan **PM2** (`npm install -g pm2`)
   * **MariaDB / MySQL Server** (`mariadb-server`)
   * **FreeRADIUS 3** (`freeradius`, `freeradius-mysql`, `freeradius-utils` untuk `radclient`)
-  * **Utilitas Pendukung**: `git`, `curl`, `openssl`, dan akses `sudo`
+  * **Utilitas Pendukung**: `git`, `curl`, `openssl`, `unzip`, `build-essential`, `python3`, dan akses `sudo`
 * **Port Jaringan**: `1812/udp` (Auth), `1813/udp` (Acct), `3799/udp` (CoA Disconnect), dan `3030/tcp` (Web Dashboard & API).
 
 ---
 
 ## Tahapan Instalasi Lengkap
 
-### 1. Instal Paket Dasar (Database, FreeRADIUS & Node.js)
+### 1. Instal Paket Dasar (Database, FreeRADIUS, Kompilator & Node.js)
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl openssl mariadb-server freeradius freeradius-mysql freeradius-utils
+sudo apt install -y git curl openssl unzip build-essential python3 mariadb-server freeradius freeradius-mysql freeradius-utils
 
 # Instal Node.js v20 LTS dan PM2
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -74,44 +74,29 @@ sudo npm install -g pm2
 ### 2. Unduh Repositori & Jalankan `install.sh`
 
 ```bash
-git clone https://github.com/adhyhimlu-hue/altraradius-hotspot-manager
+git clone https://github.com/adhyhimlu-hue/altraradius-hotspot-manager.git ~/altraradius-hotspot-manager
 cd ~/altraradius-hotspot-manager
 chmod +x install.sh
 ./install.sh
 ```
 
 Skrip `install.sh` akan otomatis:
-1. Menyalin file aplikasi ke `~/altraradius`.
-2. Membuat file `~/altraradius/radius-api/.env` berisi *password* database, `API_SECRET_KEY`, dan `JWT_SECRET` acak.
+1. Menyalin file aplikasi ke `$HOME/altraradius` (misalnya `/root/altraradius` jika dijalankan sebagai `root`).
+2. Membuat file `$HOME/altraradius/radius-api/.env` berisi *password* database, `API_SECRET_KEY`, dan `JWT_SECRET` acak.
 3. Menginstal dependensi Node.js (`express`, `mysql2`, `jsonwebtoken`, `bcrypt`, `cors`, `dotenv`).
-4. Membuat database `radius_db` dan mengimpor seluruh tabel dari `schema.sql`.
+4. Memastikan MariaDB aktif, membuat database `radius_db` dari `schema.sql`, serta menyinkronkan *password* user `radius` (`localhost` dan `127.0.0.1`).
+5. Mengaktifkan *symlink* `/etc/freeradius/3.0/mods-enabled/sql` dan menyesuaikan parameter `driver`, `dialect`, `server`, `port`, `login`, `password`, `radius_db`, dan `read_clients = yes` pada `/etc/freeradius/3.0/mods-available/sql` (dengan backup `sql.bak`).
 
 > **Catatan:** Catat kredensial **DB Pass**, **Admin (`admin`)**, dan **Password Awal (`AdminHotspot123!`)** yang muncul setelah instalasi selesai. Segera ganti password admin setelah login pertama kali.
 
-### 3. Hubungkan FreeRADIUS 3 ke MariaDB
+### 3. Uji Konfigurasi FreeRADIUS
 
 ```bash
-sudo ln -sf /etc/freeradius/3.0/mods-available/sql /etc/freeradius/3.0/mods-enabled/sql
-sudo nano /etc/freeradius/3.0/mods-enabled/sql
-```
-
-Pastikan parameter berikut sesuai dengan isi file `~/altraradius/radius-api/.env`:
-* `driver = "rlm_sql_mysql"`
-* `dialect = "mysql"`
-* `server = "127.0.0.1"`
-* `port = 3306`
-* `login = "radius"`
-* `password = "<DB_PASS_DARI_ENV>"`
-* `radius_db = "radius_db"`
-* `read_clients = yes` *(hapus tanda `#` agar tabel `nas` dibaca otomatis)*
-
-Uji konfigurasi FreeRADIUS:
-
-```bash
+sudo systemctl stop freeradius
 sudo freeradius -X
 ```
 
-Jika tidak ada error, tekan `Ctrl + C`.
+Jika di bagian akhir muncul tulisan **`Ready to process requests`**, tekan `Ctrl + C`.
 
 ### 4. Konfigurasi Notifikasi Telegram (Opsional)
 
@@ -164,7 +149,12 @@ sudo ufw allow 3799/udp
 sudo ufw allow 3030/tcp
 ```
 
-2. Buka browser ke `http://IP_SERVER_RADIUS:3030`, login dengan akun `admin` (`AdminHotspot123!`), lalu daftarkan IP MikroTik dan *Shared Secret* melalui menu **Router NAS** → **Simpan NAS**, kemudian muat ulang FreeRADIUS (`sudo systemctl reload freeradius`).
+2. Buka browser ke `http://IP_SERVER_RADIUS:3030`, login dengan akun `admin` (`AdminHotspot123!`), lalu daftarkan IP MikroTik dan *Shared Secret* melalui menu **Router NAS** → **Simpan NAS**, kemudian muat ulang FreeRADIUS:
+
+```bash
+sudo systemctl reload freeradius
+```
+
 3. Pada terminal **MikroTik**, tambahkan server RADIUS:
 
 ```rsc
