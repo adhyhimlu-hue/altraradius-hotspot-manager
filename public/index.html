@@ -27,8 +27,8 @@
   <div id="login-view" class="min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md bg-gray-900/95 rounded-2xl p-6 md:p-8 neon-border space-y-6">
       <div class="text-center space-y-2">
-        <div class="w-12 h-12 mx-auto rounded-xl bg-[#00ffcc]/10 border border-[#00ffcc]/50 flex items-center justify-center text-[#00ffcc] font-bold text-lg">aR</div>
-        <h1 class="text-xl font-bold text-white">altra<span class="text-[#00ffcc]">RADIUS</span></h1>
+        <div id="login-logo-box" class="w-14 h-14 mx-auto rounded-xl bg-[#00ffcc]/10 border border-[#00ffcc]/50 flex items-center justify-center text-[#00ffcc] font-bold text-lg overflow-hidden">aR</div>
+        <h1 class="text-xl font-bold text-white"><span id="login-brand-main">altra</span><span id="login-brand-accent" class="text-[#00ffcc]">RADIUS</span></h1>
         <p class="text-xs text-gray-400">Masuk menggunakan akun Admin atau Operator</p>
       </div>
       <form onsubmit="handleLogin(event)" class="space-y-4">
@@ -53,10 +53,10 @@
     <header class="border-b border-gray-800 bg-gray-950/90 backdrop-blur sticky top-0 z-30">
       <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-[#00ffcc]/50 flex items-center justify-center text-[#00ffcc] font-bold">aR</div>
+          <div id="header-logo-box" class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-[#00ffcc]/50 flex items-center justify-center text-[#00ffcc] font-bold overflow-hidden">aR</div>
           <div>
             <h1 class="text-base md:text-lg font-bold text-white flex items-center gap-2">
-              <span>altra<span class="text-[#00ffcc]">RADIUS</span></span>
+              <span><span id="header-brand-main">altra</span><span id="header-brand-accent" class="text-[#00ffcc]">RADIUS</span></span>
               <span id="role-badge" class="text-xs px-2 py-0.5 rounded-full bg-[#00ffcc]/15 text-[#00ffcc] border border-[#00ffcc]/40 uppercase">role</span>
             </h1>
             <p class="text-xs text-gray-400">Login sebagai: <strong id="current-user-label" class="text-gray-200">-</strong></p>
@@ -94,6 +94,8 @@
         <button onclick="switchTab('vouchers')" id="tab-btn-vouchers" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">User & Voucher</button>
         <button onclick="switchTab('profiles')" id="tab-btn-profiles" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Profil Paket</button>
         <button onclick="switchTab('nas')" id="tab-btn-nas" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Router NAS</button>
+        <button onclick="switchTab('telegram')" id="tab-btn-telegram" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Telegram Bot</button>
+        <button onclick="switchTab('branding')" id="tab-btn-branding" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Logo & Branding</button>
         <button onclick="switchTab('logs')" id="tab-btn-logs" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Log Auth</button>
         <button onclick="switchTab('operators')" id="tab-btn-operators" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Kelola Operator</button>
       </nav>
@@ -205,10 +207,7 @@
 
       <section id="tab-nas" class="tab-panel hidden space-y-6">
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <h2 class="text-base font-semibold text-white">Tambah Router NAS MikroTik</h2>
-            <button type="button" onclick="handleTestTelegram(this)" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 transition">✈ Tes Notifikasi Telegram</button>
-          </div>
+          <h2 class="text-base font-semibold text-white mb-3">Tambah Router NAS MikroTik</h2>
           <form onsubmit="handleAddNas(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <input type="text" id="nas-ip" placeholder="IP Router (nasname)" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="text" id="nas-short" placeholder="Shortname" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
@@ -225,6 +224,104 @@
         </div>
       </section>
 
+      <section id="tab-telegram" class="tab-panel hidden space-y-6">
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5 space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 pb-4">
+            <div>
+              <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                <span>Pengaturan Notifikasi Bot Telegram</span>
+                <span id="tg-status-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-gray-800 text-gray-400 border border-gray-700">Memuat...</span>
+              </h2>
+              <p class="text-xs text-gray-400 mt-1">Perubahan akan langsung disimpan ke <code>.env</code> dan diterapkan ke worker notifikasi tanpa restart manual.</p>
+            </div>
+            <button type="button" onclick="handleTestTelegram(this)" class="px-4 py-2 text-xs font-semibold rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 transition">✈ Tes Kirim Pesan Telegram</button>
+          </div>
+
+          <form onsubmit="handleSaveTelegramConfig(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Bot Token Telegram (dari @BotFather)</label>
+              <div class="flex gap-2">
+                <input type="password" id="tg-bot-token" placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:border-[#00ffcc] focus:outline-none" />
+                <button type="button" onclick="toggleTokenVisibility()" class="px-3 py-2 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700">👁</button>
+              </div>
+              <p id="tg-token-hint" class="text-[11px] text-gray-500 mt-1">Kosongkan kolom ini jika tidak ingin mengubah token yang sudah tersimpan.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Chat ID / Group ID Tujuan</label>
+              <input type="text" id="tg-chat-id" placeholder="Contoh: 123456789 atau -1001234567890" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white font-mono focus:border-[#00ffcc] focus:outline-none" />
+              <p class="text-[11px] text-gray-500 mt-1">Gunakan ID grup berawalan <code>-100...</code> untuk notifikasi ke grup Telegram.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Interval Cek Login/Logout Sesi (detik)</label>
+              <input type="number" id="tg-poll-sec" value="10" min="5" max="300" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#00ffcc] focus:outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Interval Ping Status Router NAS (detik)</label>
+              <input type="number" id="tg-ping-sec" value="60" min="15" max="600" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#00ffcc] focus:outline-none" />
+            </div>
+
+            <div class="md:col-span-2 flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-800">
+              <button type="button" onclick="handleDisableTelegram()" class="px-4 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40 text-xs font-medium">Nonaktifkan & Hapus Token</button>
+              <button type="submit" id="tg-save-btn" class="px-6 py-2 rounded-lg bg-[#00ffcc] hover:bg-emerald-300 text-gray-950 font-semibold text-sm transition">Simpan Konfigurasi Telegram</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="tab-branding" class="tab-panel hidden space-y-6">
+        <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5 space-y-5">
+          <div class="border-b border-gray-800 pb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="text-base font-semibold text-white">Kustomisasi Logo & Nama Brand</h2>
+              <p class="text-xs text-gray-400 mt-1">Ubah logo ikon/gambar (PNG, JPG, WEBP, SVG maks. 2 MB) dan nama jaringan pada halaman Login, Header Dashboard, serta template Cetak Voucher.</p>
+            </div>
+            <div class="flex items-center gap-3 bg-gray-950 border border-gray-800 px-3 py-2 rounded-xl">
+              <div id="branding-preview-box" class="w-10 h-10 rounded-lg bg-[#00ffcc]/10 border border-[#00ffcc]/50 flex items-center justify-center text-[#00ffcc] font-bold overflow-hidden">aR</div>
+              <div class="text-xs">
+                <div class="font-bold text-white"><span id="preview-brand-main">altra</span><span id="preview-brand-accent" class="text-[#00ffcc]">RADIUS</span></div>
+                <div class="text-gray-400 text-[11px]">Pratinjau Live</div>
+              </div>
+            </div>
+          </div>
+
+          <form onsubmit="handleSaveBranding(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Unggah File Logo Baru (PNG / JPG / WEBP / SVG)</label>
+              <input type="file" id="brand-logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onchange="previewLogoFile(event)" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-200 file:mr-2 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-[#00ffcc]/15 file:text-[#00ffcc]" />
+              <p class="text-[11px] text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengganti gambar logo saat ini.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Inisial Teks Logo (jika tanpa gambar, maks. 4 huruf)</label>
+              <input type="text" id="brand-logo-text" maxlength="4" value="aR" oninput="updateBrandingPreview()" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white font-bold focus:border-[#00ffcc] focus:outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Nama Brand Utama (Putih)</label>
+              <input type="text" id="brand-main-input" value="altra" oninput="updateBrandingPreview()" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#00ffcc] focus:outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Nama Brand Aksen (Warna Neon Cyan)</label>
+              <input type="text" id="brand-accent-input" value="RADIUS" oninput="updateBrandingPreview()" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#00ffcc] focus:outline-none" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label class="block text-xs text-gray-400 mb-1">Judul Header Saat Cetak Voucher</label>
+              <input type="text" id="brand-voucher-title" value="VOUCHER altraRADIUS" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#00ffcc] focus:outline-none" />
+            </div>
+
+            <div class="md:col-span-2 flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-800">
+              <button type="button" onclick="handleResetLogo()" class="px-4 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40 text-xs font-medium">Hapus Gambar Logo (Kembali ke Inisial)</button>
+              <button type="submit" id="brand-save-btn" class="px-6 py-2 rounded-lg bg-[#00ffcc] hover:bg-emerald-300 text-gray-950 font-semibold text-sm transition">Simpan Logo & Branding</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
       <section id="tab-logs" class="tab-panel hidden">
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
           <table class="w-full text-left text-sm">
@@ -236,10 +333,7 @@
 
       <section id="tab-operators" class="tab-panel hidden space-y-6">
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
-          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <h2 class="text-base font-semibold text-white">Buat Akun Admin / Operator</h2>
-            <button type="button" onclick="handleTestTelegram(this)" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 transition">✈ Tes Notifikasi Telegram</button>
-          </div>
+          <h2 class="text-base font-semibold text-white mb-3">Buat Akun Admin / Operator</h2>
           <form onsubmit="handleCreateOperator(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <input type="text" id="op-fullname" placeholder="Nama Lengkap" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="text" id="op-username" placeholder="Username Login" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
@@ -267,6 +361,14 @@
     let API_BASE_URL = localStorage.getItem('radius_api_url') || '/api';
     let JWT_TOKEN = localStorage.getItem('radius_jwt_token') || '';
     let CURRENT_USER = JSON.parse(localStorage.getItem('radius_current_user') || 'null');
+    let BRANDING = {
+      brandMain: 'altra',
+      brandAccent: 'RADIUS',
+      logoText: 'aR',
+      logoUrl: '',
+      voucherTitle: 'VOUCHER altraRADIUS'
+    };
+    let pendingLogoDataUrl = '';
     let state = { users: [], profiles: [], nas: [], sessions: [], logs: [], operators: [] };
 
     function showToast(message, type = 'info') {
@@ -299,6 +401,117 @@
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
     }
     function formatRupiah(num) { return 'Rp ' + (Number(num) || 0).toLocaleString('id-ID'); }
+
+    function renderLogoContainer(el, logoUrl, logoText) {
+      if (!el) return;
+      if (logoUrl) {
+        el.innerHTML = `<img src="${escapeHtml(logoUrl)}" alt="Logo" class="w-full h-full object-contain p-1" />`;
+      } else {
+        el.textContent = logoText || 'aR';
+      }
+    }
+
+    function applyBrandingToUI(b) {
+      BRANDING = { ...BRANDING, ...b };
+      document.title = `${BRANDING.brandMain}${BRANDING.brandAccent} — Hotspot & PPPoE Manager`;
+      document.getElementById('login-brand-main').textContent = BRANDING.brandMain;
+      document.getElementById('login-brand-accent').textContent = BRANDING.brandAccent;
+      document.getElementById('header-brand-main').textContent = BRANDING.brandMain;
+      document.getElementById('header-brand-accent').textContent = BRANDING.brandAccent;
+      renderLogoContainer(document.getElementById('login-logo-box'), BRANDING.logoUrl, BRANDING.logoText);
+      renderLogoContainer(document.getElementById('header-logo-box'), BRANDING.logoUrl, BRANDING.logoText);
+
+      const mainInput = document.getElementById('brand-main-input');
+      if (mainInput) {
+        mainInput.value = BRANDING.brandMain;
+        document.getElementById('brand-accent-input').value = BRANDING.brandAccent;
+        document.getElementById('brand-logo-text').value = BRANDING.logoText;
+        document.getElementById('brand-voucher-title').value = BRANDING.voucherTitle;
+        updateBrandingPreview();
+      }
+    }
+
+    async function loadBranding() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/branding`);
+        const data = await res.json();
+        if (data && data.data) applyBrandingToUI(data.data);
+      } catch (_) {}
+    }
+
+    function updateBrandingPreview() {
+      const main = document.getElementById('brand-main-input').value || 'altra';
+      const accent = document.getElementById('brand-accent-input').value || '';
+      const text = document.getElementById('brand-logo-text').value || 'aR';
+      document.getElementById('preview-brand-main').textContent = main;
+      document.getElementById('preview-brand-accent').textContent = accent;
+      renderLogoContainer(document.getElementById('branding-preview-box'), pendingLogoDataUrl || BRANDING.logoUrl, text);
+    }
+
+    function previewLogoFile(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) {
+        pendingLogoDataUrl = '';
+        updateBrandingPreview();
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        showToast('Ukuran logo maksimal 2 MB', 'error');
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingLogoDataUrl = reader.result;
+        updateBrandingPreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function handleSaveBranding(e) {
+      e.preventDefault();
+      const btn = document.getElementById('brand-save-btn');
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+      try {
+        const res = await apiFetch('/branding', {
+          method: 'POST',
+          body: JSON.stringify({
+            brandMain: document.getElementById('brand-main-input').value.trim(),
+            brandAccent: document.getElementById('brand-accent-input').value.trim(),
+            logoText: document.getElementById('brand-logo-text').value.trim(),
+            voucherTitle: document.getElementById('brand-voucher-title').value.trim(),
+            logoDataUrl: pendingLogoDataUrl || undefined
+          })
+        });
+        pendingLogoDataUrl = '';
+        document.getElementById('brand-logo-file').value = '';
+        applyBrandingToUI(res.data || {});
+        showToast(res.message || 'Logo & branding berhasil diperbarui', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }
+
+    async function handleResetLogo() {
+      if (!confirm('Hapus gambar logo dan kembalikan ke ikon teks inisial?')) return;
+      try {
+        const res = await apiFetch('/branding', {
+          method: 'POST',
+          body: JSON.stringify({ resetLogo: true })
+        });
+        pendingLogoDataUrl = '';
+        document.getElementById('brand-logo-file').value = '';
+        applyBrandingToUI(res.data || {});
+        showToast('Gambar logo dihapus', 'info');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
 
     async function apiFetch(endpoint, options = {}) {
       const headers = { 'Content-Type': 'application/json', ...(JWT_TOKEN ? { 'Authorization': `Bearer ${JWT_TOKEN}` } : {}), ...(options.headers || {}) };
@@ -424,6 +637,82 @@
       document.getElementById('nas-tbody').innerHTML = state.nas.map(n => `<tr><td class="px-4 py-3 font-mono text-[#00ffcc]">${escapeHtml(n.nasname)}</td><td class="px-4 py-3">${escapeHtml(n.shortname || '-')}</td><td class="px-4 py-3 font-mono text-xs text-gray-400">${escapeHtml(n.secret)}</td><td class="px-4 py-3 text-xs text-gray-400">${escapeHtml(n.description || '-')}</td></tr>`).join('');
     }
 
+    async function loadTelegramConfig() {
+      if (CURRENT_USER?.role !== 'admin') return;
+      try {
+        const res = await apiFetch('/notifications/config');
+        renderTelegramConfig(res.data || {});
+      } catch (err) {
+        console.error('Gagal memuat konfigurasi Telegram:', err.message);
+      }
+    }
+
+    function renderTelegramConfig(cfg) {
+      const badge = document.getElementById('tg-status-badge');
+      const tokenInput = document.getElementById('tg-bot-token');
+      const tokenHint = document.getElementById('tg-token-hint');
+      if (cfg.enabled) {
+        badge.textContent = 'Aktif';
+        badge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+      } else {
+        badge.textContent = 'Nonaktif';
+        badge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/40';
+      }
+      tokenInput.value = '';
+      tokenInput.placeholder = cfg.hasToken ? `Tersimpan (${cfg.maskedToken}) — isi untuk mengganti` : '123456789:ABCdefGHIjklMNOpqrSTUvwxYZ';
+      tokenHint.textContent = cfg.hasToken
+        ? `Token saat ini: ${cfg.maskedToken}. Biarkan kosong jika tidak ingin mengganti token.`
+        : 'Belum ada Bot Token tersimpan.';
+      document.getElementById('tg-chat-id').value = cfg.chatId || '';
+      document.getElementById('tg-poll-sec').value = cfg.pollIntervalSec || 10;
+      document.getElementById('tg-ping-sec').value = cfg.nasPingIntervalSec || 60;
+    }
+
+    function toggleTokenVisibility() {
+      const inp = document.getElementById('tg-bot-token');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+
+    async function handleSaveTelegramConfig(e) {
+      e.preventDefault();
+      const btn = document.getElementById('tg-save-btn');
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+      try {
+        const res = await apiFetch('/notifications/config', {
+          method: 'POST',
+          body: JSON.stringify({
+            botToken: document.getElementById('tg-bot-token').value.trim(),
+            chatId: document.getElementById('tg-chat-id').value.trim(),
+            pollIntervalSec: Number(document.getElementById('tg-poll-sec').value),
+            nasPingIntervalSec: Number(document.getElementById('tg-ping-sec').value)
+          })
+        });
+        renderTelegramConfig(res.data || {});
+        showToast(res.message || 'Konfigurasi Telegram berhasil disimpan', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }
+
+    async function handleDisableTelegram() {
+      if (!confirm('Nonaktifkan notifikasi Telegram dan hapus Bot Token yang tersimpan?')) return;
+      try {
+        const res = await apiFetch('/notifications/config', {
+          method: 'POST',
+          body: JSON.stringify({ clearToken: true, chatId: '' })
+        });
+        renderTelegramConfig(res.data || {});
+        showToast('Notifikasi Telegram dinonaktifkan', 'info');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
     async function loadAuthLogs() {
       const res = await apiFetch('/logs/auth');
       state.logs = res.data || [];
@@ -445,7 +734,7 @@
     }
 
     async function refreshAllData() {
-      try { await Promise.all([loadActiveSessions(), loadUsers(), loadProfiles(), loadNas(), loadAuthLogs(), loadOperators()]); }
+      try { await Promise.all([loadBranding(), loadActiveSessions(), loadUsers(), loadProfiles(), loadNas(), loadTelegramConfig(), loadAuthLogs(), loadOperators()]); }
       catch (err) { showToast(err.message, 'error'); }
     }
 
@@ -651,13 +940,15 @@
       if (!state.users.length) return showToast('Tidak ada voucher', 'error');
       const area = document.getElementById('print-area');
       area.classList.remove('hidden');
+      const logoImg = BRANDING.logoUrl ? `<img src="${escapeHtml(BRANDING.logoUrl)}" style="height:22px;margin:0 auto 2px;object-fit:contain;" />` : '';
       area.innerHTML = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-family:monospace;">` +
-        state.users.map(v => `<div style="border:1px dashed #333;padding:8px;text-align:center;"><div style="font-size:10px;font-weight:bold;">VOUCHER altraRADIUS</div><div style="font-size:13px;font-weight:bold;">${escapeHtml(v.username)}</div>${v.username !== v.password ? `<div style="font-size:11px;">Pass: ${escapeHtml(v.password)}</div>` : ''}<div style="font-size:10px;">${escapeHtml(v.profile || '-')} • ${formatRupiah(v.price)}</div></div>`).join('') + `</div>`;
+        state.users.map(v => `<div style="border:1px dashed #333;padding:8px;text-align:center;">${logoImg}<div style="font-size:10px;font-weight:bold;">${escapeHtml(BRANDING.voucherTitle || 'VOUCHER altraRADIUS')}</div><div style="font-size:13px;font-weight:bold;">${escapeHtml(v.username)}</div>${v.username !== v.password ? `<div style="font-size:11px;">Pass: ${escapeHtml(v.password)}</div>` : ''}<div style="font-size:10px;">${escapeHtml(v.profile || '-')} • ${formatRupiah(v.price)}</div></div>`).join('') + `</div>`;
       window.print(); area.classList.add('hidden');
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('login-api-url').value = API_BASE_URL;
+      await loadBranding();
       if (JWT_TOKEN && CURRENT_USER) enterApp();
     });
   </script>
