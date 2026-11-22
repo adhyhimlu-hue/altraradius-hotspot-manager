@@ -74,7 +74,7 @@ sudo npm install -g pm2
 ### 2. Unduh Repositori & Jalankan `install.sh`
 
 ```bash
-git clone https://github.com/USERNAME_GITHUB/NAMA_REPO.git ~/altraradius-src
+git clone https://github.com/adhyhimlu-hue/altraradius-hotspot-manager
 cd ~/altraradius-src
 chmod +x install.sh
 ./install.sh
