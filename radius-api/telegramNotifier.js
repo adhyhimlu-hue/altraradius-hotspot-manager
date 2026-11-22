@@ -3,18 +3,42 @@ const { exec } = require('child_process');
 class TelegramNotifier {
   constructor(pool, config = {}) {
     this.pool = pool;
-    this.botToken = (config.botToken || process.env.TELEGRAM_BOT_TOKEN || '').trim();
-    this.chatId = (config.chatId || process.env.TELEGRAM_CHAT_ID || '').trim();
-    this.pollIntervalMs = Math.max(5, Number(config.pollIntervalSec || process.env.TG_POLL_INTERVAL_SEC || 10)) * 1000;
-    this.nasPingIntervalMs = Math.max(15, Number(config.nasPingIntervalSec || process.env.TG_NAS_PING_INTERVAL_SEC || 60)) * 1000;
-
-    this.enabled = Boolean(this.botToken && this.chatId);
     this.lastAcctId = 0;
     this.notifiedStopIds = new Set();
     this.nasStatusMap = new Map();
     this.pollTimer = null;
     this.nasTimer = null;
     this.isPolling = false;
+    this.applyConfig(config);
+  }
+
+  applyConfig(config = {}) {
+    this.botToken = String(config.botToken ?? process.env.TELEGRAM_BOT_TOKEN ?? '').trim();
+    this.chatId = String(config.chatId ?? process.env.TELEGRAM_CHAT_ID ?? '').trim();
+    const pollSec = Math.max(5, Number(config.pollIntervalSec ?? process.env.TG_POLL_INTERVAL_SEC ?? 10) || 10);
+    const pingSec = Math.max(15, Number(config.nasPingIntervalSec ?? process.env.TG_NAS_PING_INTERVAL_SEC ?? 60) || 60);
+    this.pollIntervalSec = pollSec;
+    this.nasPingIntervalSec = pingSec;
+    this.pollIntervalMs = pollSec * 1000;
+    this.nasPingIntervalMs = pingSec * 1000;
+    this.enabled = Boolean(this.botToken && this.chatId);
+  }
+
+  getConfigSummary() {
+    let maskedToken = '';
+    if (this.botToken) {
+      maskedToken = this.botToken.length > 12
+        ? `${this.botToken.slice(0, 6)}...${this.botToken.slice(-4)}`
+        : '••••••••';
+    }
+    return {
+      enabled: this.enabled,
+      hasToken: Boolean(this.botToken),
+      maskedToken,
+      chatId: this.chatId,
+      pollIntervalSec: this.pollIntervalSec,
+      nasPingIntervalSec: this.nasPingIntervalSec
+    };
   }
 
   escapeHtml(value) {
@@ -76,9 +100,11 @@ class TelegramNotifier {
         'SELECT radacctid FROM radacct WHERE radacctid <= ? AND acctstoptime IS NOT NULL',
         [this.lastAcctId]
       );
+      this.notifiedStopIds.clear();
       stoppedRows.forEach(r => this.notifiedStopIds.add(Number(r.radacctid)));
 
       const [nasRows] = await this.pool.query('SELECT nasname, shortname FROM nas');
+      this.nasStatusMap.clear();
       for (const nas of nasRows) {
         const isUp = await this.pingHost(nas.nasname);
         this.nasStatusMap.set(nas.nasname, isUp ? 'UP' : 'DOWN');
@@ -183,20 +209,37 @@ class TelegramNotifier {
     }
   }
 
-  async start() {
+  async start(announce = true) {
+    this.stop();
     if (!this.enabled) {
       console.log('[TelegramNotifier] Nonaktif.');
       return;
     }
     await this.initBaseline();
-    await this.sendMessage('🤖 <b>altraRADIUS Notifier Aktif</b>');
+    if (announce) {
+      await this.sendMessage('🤖 <b>altraRADIUS Notifier Aktif</b>');
+    }
     this.pollTimer = setInterval(() => this.checkSessions(), this.pollIntervalMs);
     this.nasTimer = setInterval(() => this.checkNasStatus(), this.nasPingIntervalMs);
   }
 
+  async reloadConfig(newConfig = {}) {
+    this.stop();
+    this.applyConfig(newConfig);
+    if (this.enabled) {
+      await this.start(false);
+    }
+  }
+
   stop() {
-    if (this.pollTimer) clearInterval(this.pollTimer);
-    if (this.nasTimer) clearInterval(this.nasTimer);
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer);
+      this.pollTimer = null;
+    }
+    if (this.nasTimer) {
+      clearInterval(this.nasTimer);
+      this.nasTimer = null;
+    }
   }
 }
 

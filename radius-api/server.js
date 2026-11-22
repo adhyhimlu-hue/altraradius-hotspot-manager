@@ -3,6 +3,7 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { exec } = require('child_process');
@@ -11,10 +12,40 @@ const TelegramNotifier = require('./telegramNotifier');
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
-app.use(express.static(path.join(__dirname, '../public')));
 
+const PUBLIC_DIR = path.join(__dirname, '../public');
+const BRANDING_FILE_PATH = path.join(PUBLIC_DIR, 'branding.json');
+app.use(express.static(PUBLIC_DIR));
+
+const ENV_FILE_PATH = path.join(__dirname, '.env');
 const JWT_SECRET = process.env.JWT_SECRET || 'change_this_jwt_secret';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '12h';
+
+const DEFAULT_BRANDING = {
+  brandMain: 'altra',
+  brandAccent: 'RADIUS',
+  logoText: 'aR',
+  logoUrl: '',
+  voucherTitle: 'VOUCHER altraRADIUS'
+};
+
+function readBranding() {
+  try {
+    if (fs.existsSync(BRANDING_FILE_PATH)) {
+      const raw = JSON.parse(fs.readFileSync(BRANDING_FILE_PATH, 'utf8'));
+      return { ...DEFAULT_BRANDING, ...raw };
+    }
+  } catch (err) {
+    console.error('Gagal membaca branding.json:', err.message);
+  }
+  return { ...DEFAULT_BRANDING };
+}
+
+function writeBranding(data) {
+  const merged = { ...DEFAULT_BRANDING, ...data };
+  fs.writeFileSync(BRANDING_FILE_PATH, JSON.stringify(merged, null, 2), 'utf8');
+  return merged;
+}
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -27,6 +58,35 @@ const pool = mysql.createPool({
 });
 
 const notifier = new TelegramNotifier(pool);
+
+function updateEnvFile(updates) {
+  let content = '';
+  if (fs.existsSync(ENV_FILE_PATH)) {
+    content = fs.readFileSync(ENV_FILE_PATH, 'utf8');
+  }
+  const lines = content ? content.split(/\r?\n/) : [];
+  const handledKeys = new Set();
+
+  const updatedLines = lines.map((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#') || !line.includes('=')) return line;
+    const eqIdx = line.indexOf('=');
+    const key = line.slice(0, eqIdx).trim();
+    if (Object.prototype.hasOwnProperty.call(updates, key)) {
+      handledKeys.add(key);
+      return `${key}=${updates[key]}`;
+    }
+    return line;
+  });
+
+  for (const [key, val] of Object.entries(updates)) {
+    if (!handledKeys.has(key)) {
+      updatedLines.push(`${key}=${val}`);
+    }
+  }
+
+  fs.writeFileSync(ENV_FILE_PATH, updatedLines.join('\n').replace(/\n*$/, '\n'), 'utf8');
+}
 
 async function ensureDefaultAdmin() {
   try {
@@ -85,6 +145,58 @@ function generateCode(length = 6) {
   }
   return result;
 }
+
+// Endpoint publik agar halaman login & dashboard bisa langsung memuat logo/branding
+app.get('/api/branding', (req, res) => {
+  res.json({ success: true, data: readBranding() });
+});
+
+app.post('/api/branding', authMiddleware, requireRole('admin'), (req, res) => {
+  const { brandMain, brandAccent, logoText, logoDataUrl, logoUrl, voucherTitle, resetLogo } = req.body || {};
+  const current = readBranding();
+
+  let nextLogoUrl = current.logoUrl;
+
+  if (resetLogo) {
+    try {
+      fs.readdirSync(PUBLIC_DIR)
+        .filter(f => f.startsWith('custom-logo.'))
+        .forEach(f => fs.unlinkSync(path.join(PUBLIC_DIR, f)));
+    } catch (_) {}
+    nextLogoUrl = '';
+  } else if (typeof logoDataUrl === 'string' && logoDataUrl.startsWith('data:image/')) {
+    const match = logoDataUrl.match(/^data:image\/(png|jpeg|jpg|webp|svg\+xml);base64,(.+)$/i);
+    if (!match) {
+      return res.status(400).json({ error: 'Format gambar harus PNG, JPG, WEBP, atau SVG' });
+    }
+    const rawExt = match[1].toLowerCase();
+    const ext = rawExt === 'svg+xml' ? 'svg' : (rawExt === 'jpeg' ? 'jpg' : rawExt);
+    const buffer = Buffer.from(match[2], 'base64');
+    if (buffer.length > 2 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Ukuran file logo maksimal 2 MB' });
+    }
+    try {
+      fs.readdirSync(PUBLIC_DIR)
+        .filter(f => f.startsWith('custom-logo.'))
+        .forEach(f => fs.unlinkSync(path.join(PUBLIC_DIR, f)));
+    } catch (_) {}
+    const filename = `custom-logo.${ext}`;
+    fs.writeFileSync(path.join(PUBLIC_DIR, filename), buffer);
+    nextLogoUrl = `/${filename}?v=${Date.now()}`;
+  } else if (typeof logoUrl === 'string') {
+    nextLogoUrl = logoUrl.trim();
+  }
+
+  const saved = writeBranding({
+    brandMain: typeof brandMain === 'string' && brandMain.trim() ? brandMain.trim() : current.brandMain,
+    brandAccent: typeof brandAccent === 'string' ? brandAccent.trim() : current.brandAccent,
+    logoText: typeof logoText === 'string' && logoText.trim() ? logoText.trim().slice(0, 4) : current.logoText,
+    logoUrl: nextLogoUrl,
+    voucherTitle: typeof voucherTitle === 'string' && voucherTitle.trim() ? voucherTitle.trim() : current.voucherTitle
+  });
+
+  res.json({ success: true, message: 'Logo & identitas aplikasi berhasil diperbarui', data: saved });
+});
 
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
@@ -358,10 +470,56 @@ app.post('/api/sessions/disconnect', authMiddleware, requireRole('admin', 'opera
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.get('/api/notifications/config', authMiddleware, requireRole('admin'), (req, res) => {
+  res.json({ success: true, data: notifier.getConfigSummary() });
+});
+
+app.post('/api/notifications/config', authMiddleware, requireRole('admin'), async (req, res) => {
+  const { botToken, chatId, pollIntervalSec, nasPingIntervalSec, clearToken } = req.body || {};
+
+  const finalToken = clearToken
+    ? ''
+    : (typeof botToken === 'string' && botToken.trim() !== '' ? botToken.trim() : notifier.botToken);
+  const finalChatId = typeof chatId === 'string' ? chatId.trim() : notifier.chatId;
+  const finalPollSec = Math.max(5, Number(pollIntervalSec || notifier.pollIntervalSec || 10) || 10);
+  const finalPingSec = Math.max(15, Number(nasPingIntervalSec || notifier.nasPingIntervalSec || 60) || 60);
+
+  try {
+    process.env.TELEGRAM_BOT_TOKEN = finalToken;
+    process.env.TELEGRAM_CHAT_ID = finalChatId;
+    process.env.TG_POLL_INTERVAL_SEC = String(finalPollSec);
+    process.env.TG_NAS_PING_INTERVAL_SEC = String(finalPingSec);
+
+    updateEnvFile({
+      TELEGRAM_BOT_TOKEN: finalToken,
+      TELEGRAM_CHAT_ID: finalChatId,
+      TG_POLL_INTERVAL_SEC: String(finalPollSec),
+      TG_NAS_PING_INTERVAL_SEC: String(finalPingSec)
+    });
+
+    await notifier.reloadConfig({
+      botToken: finalToken,
+      chatId: finalChatId,
+      pollIntervalSec: finalPollSec,
+      nasPingIntervalSec: finalPingSec
+    });
+
+    res.json({
+      success: true,
+      message: notifier.enabled
+        ? 'Pengaturan Telegram disimpan & bot notifikasi aktif'
+        : 'Pengaturan Telegram disimpan (status nonaktif karena Token/Chat ID kosong)',
+      data: notifier.getConfigSummary()
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menyimpan pengaturan Telegram: ' + err.message });
+  }
+});
+
 app.post('/api/notifications/test', authMiddleware, requireRole('admin'), async (req, res) => {
-  if (!notifier.enabled) return res.status(400).json({ error: 'TELEGRAM_BOT_TOKEN atau TELEGRAM_CHAT_ID belum diatur di .env' });
+  if (!notifier.enabled) return res.status(400).json({ error: 'TELEGRAM_BOT_TOKEN atau TELEGRAM_CHAT_ID belum diatur' });
   const ok = await notifier.sendMessage('🧪 <b>Tes Notifikasi altraRADIUS</b>\nKoneksi bot Telegram dari backend Node.js berhasil.');
-  if (!ok) return res.status(502).json({ error: 'Gagal mengirim pesan uji ke Telegram' });
+  if (!ok) return res.status(502).json({ error: 'Gagal mengirim pesan uji ke Telegram. Periksa kembali Bot Token & Chat ID.' });
   res.json({ success: true, message: 'Pesan uji berhasil dikirim ke Telegram' });
 });
 
