@@ -75,7 +75,7 @@ sudo npm install -g pm2
 
 ```bash
 git clone https://github.com/adhyhimlu-hue/altraradius-hotspot-manager
-cd ~/altraradius-src
+cd ~/altraradius-hotspot-manager
 chmod +x install.sh
 ./install.sh
 ```
