@@ -3,8 +3,6 @@
 [![MariaDB](https://img.shields.io/badge/MariaDB%2FMySQL-10.x-003545?style=flat-square&logo=mariadb&logoColor=white)](https://mariadb.org/)
 [![License](https://img.shields.io/badge/License-MIT-00ffcc?style=flat-square)](LICENSE)
 
-Sistem manajemen **FreeRADIUS 3** berbasis web untuk pengelolaan voucher hotspot MikroTik, profil bandwidth/kuota, pemantauan sesi aktif (*accounting*), pemutusan sesi jarak jauh (*CoA Disconnect*), impor/ekspor voucher CSV, pengaturan notifikasi bot Telegram, serta kustomisasi logo & nama brand langsung dari dashboard[cite: 19].
-
 ---
 
 # altraRADIUS — Hotspot & PPPoE Manager
