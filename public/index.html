@@ -96,6 +96,7 @@
         <button onclick="switchTab('nas')" id="tab-btn-nas" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Router NAS</button>
         <button onclick="switchTab('telegram')" id="tab-btn-telegram" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Telegram Bot</button>
         <button onclick="switchTab('branding')" id="tab-btn-branding" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Logo & Branding</button>
+        <button onclick="switchTab('template')" id="tab-btn-template" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Template Voucher</button>
         <button onclick="switchTab('logs')" id="tab-btn-logs" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Log Auth</button>
         <button onclick="switchTab('operators')" id="tab-btn-operators" data-role="admin" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800">Kelola Operator</button>
       </nav>
@@ -128,14 +129,15 @@
       <section id="tab-vouchers" class="tab-panel hidden space-y-6">
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
           <h2 class="text-base font-semibold text-white mb-3">Generate Voucher Massal</h2>
-          <form onsubmit="handleGenerateVouchers(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          <form onsubmit="handleGenerateVouchers(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3">
             <div><label class="block text-xs text-gray-400 mb-1">Jumlah</label><input type="number" id="vc-count" value="10" min="1" max="500" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" /></div>
             <div><label class="block text-xs text-gray-400 mb-1">Prefix</label><input type="text" id="vc-prefix" value="VC-" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" /></div>
             <div><label class="block text-xs text-gray-400 mb-1">Panjang Kode</label><input type="number" id="vc-length" value="5" min="3" max="12" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" /></div>
             <div><label class="block text-xs text-gray-400 mb-1">Profil Paket</label><select id="vc-profile" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"></select></div>
             <div><label class="block text-xs text-gray-400 mb-1">Harga (Rp)</label><input type="number" id="vc-price" value="5000" min="0" required class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" /></div>
             <div><label class="block text-xs text-gray-400 mb-1">Password</label><select id="vc-same" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"><option value="true">Sama dengan User</option><option value="false">Acak Terpisah</option></select></div>
-            <div class="sm:col-span-2 lg:col-span-6 flex justify-end pt-2"><button type="submit" class="px-5 py-2 rounded-lg bg-[#00ffcc] hover:bg-emerald-300 text-gray-950 font-semibold text-sm">+ Generate Voucher</button></div>
+            <div><label class="block text-xs text-gray-400 mb-1">Comment Cetak</label><input type="text" id="vc-comment" placeholder="Misal: Agen-Medana" maxlength="100" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" /></div>
+            <div class="sm:col-span-2 lg:col-span-7 flex justify-end pt-2"><button type="submit" class="px-5 py-2 rounded-lg bg-[#00ffcc] hover:bg-emerald-300 text-gray-950 font-semibold text-sm">+ Generate Voucher</button></div>
           </form>
         </div>
 
@@ -143,7 +145,7 @@
           <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div>
               <h2 class="text-base font-semibold text-white">Import User / Voucher dari CSV</h2>
-              <p class="text-xs text-gray-400">Kolom CSV: <code class="text-[#00ffcc]">Username, Password, Profil, Harga, Batch, Status</code> (pemisah koma <code>,</code> atau titik koma <code>;</code>)</p>
+              <p class="text-xs text-gray-400">Kolom CSV: <code class="text-[#00ffcc]">Username, Password, Profil, Harga, Batch, Status, Comment</code> (pemisah koma <code>,</code> atau titik koma <code>;</code>)</p>
             </div>
             <button type="button" onclick="downloadSampleCSV()" class="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700">📄 Unduh Template CSV</button>
           </div>
@@ -168,7 +170,12 @@
 
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
           <div class="p-4 border-b border-gray-800 flex flex-wrap justify-between items-center gap-2">
-            <input type="text" id="search-user" oninput="renderUsersTable()" placeholder="Cari user, paket, atau batch..." class="w-full max-w-xs bg-gray-950 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white" />
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              <input type="text" id="search-user" oninput="renderUsersTable()" placeholder="Cari user, paket, batch, comment..." class="w-full sm:w-64 bg-gray-950 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white" />
+              <select id="filter-comment" onchange="renderUsersTable()" class="w-full sm:w-48 bg-gray-950 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white">
+                <option value="">Semua Comment Cetak</option>
+              </select>
+            </div>
             <div class="flex gap-2">
               <button onclick="exportUsersCSV()" class="px-3 py-1.5 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700">⬇ Ekspor CSV</button>
               <button onclick="printVouchers()" class="px-3 py-1.5 text-xs rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40">🖨 Cetak</button>
@@ -177,7 +184,7 @@
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800">
-                <tr><th class="px-4 py-3">Username</th><th class="px-4 py-3">Password</th><th class="px-4 py-3">Profil</th><th class="px-4 py-3">Harga</th><th class="px-4 py-3">Batch</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Aksi</th></tr>
+                <tr><th class="px-4 py-3">Username</th><th class="px-4 py-3">Password</th><th class="px-4 py-3">Profil</th><th class="px-4 py-3">Harga</th><th class="px-4 py-3">Batch</th><th class="px-4 py-3">Comment</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Aksi</th></tr>
               </thead>
               <tbody id="users-tbody" class="divide-y divide-gray-800/80"></tbody>
             </table>
@@ -187,19 +194,24 @@
 
       <section id="tab-profiles" class="tab-panel hidden space-y-6">
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
-          <h2 class="text-base font-semibold text-white mb-3">Simpan Profil Paket</h2>
+          <div class="flex items-center justify-between mb-3">
+            <h2 id="prof-form-title" class="text-base font-semibold text-white">Tambah / Edit Profil Paket</h2>
+            <button type="button" id="prof-cancel-btn" onclick="resetProfileForm()" class="hidden px-3 py-1 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700">Batal Edit</button>
+          </div>
           <form onsubmit="handleSaveProfile(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <input type="text" id="prof-name" placeholder="Nama Profil (misal: Paket-2M)" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="text" id="prof-rate" placeholder="Rate Limit (misal: 2M/2M)" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="number" id="prof-session" placeholder="Session-Timeout (detik)" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="number" id="prof-maxall" placeholder="Max-All-Session (detik)" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="number" id="prof-quota" placeholder="Limit Kuota (bytes)" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-            <div class="sm:col-span-2 lg:col-span-5 flex justify-end"><button type="submit" class="px-5 py-2 rounded-lg bg-[#00ffcc] text-gray-950 font-semibold text-sm">Simpan Profil</button></div>
+            <div class="sm:col-span-2 lg:col-span-5 flex justify-end"><button type="submit" id="prof-submit-btn" class="px-5 py-2 rounded-lg bg-[#00ffcc] text-gray-950 font-semibold text-sm">Simpan Profil</button></div>
           </form>
         </div>
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
           <table class="w-full text-left text-sm">
-            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800"><tr><th class="px-4 py-3">Grup</th><th class="px-4 py-3">Atribut</th><th class="px-4 py-3">Nilai</th></tr></thead>
+            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800">
+              <tr><th class="px-4 py-3">Grup / Profil</th><th class="px-4 py-3">Atribut & Nilai</th><th class="px-4 py-3 text-right">Aksi</th></tr>
+            </thead>
             <tbody id="profiles-tbody" class="divide-y divide-gray-800/80"></tbody>
           </table>
         </div>
@@ -207,18 +219,23 @@
 
       <section id="tab-nas" class="tab-panel hidden space-y-6">
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
-          <h2 class="text-base font-semibold text-white mb-3">Tambah Router NAS MikroTik</h2>
+          <div class="flex items-center justify-between mb-3">
+            <h2 id="nas-form-title" class="text-base font-semibold text-white">Tambah Router NAS MikroTik</h2>
+            <button type="button" id="nas-cancel-btn" onclick="resetNasForm()" class="hidden px-3 py-1 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700">Batal Edit</button>
+          </div>
           <form onsubmit="handleAddNas(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <input type="text" id="nas-ip" placeholder="IP Router (nasname)" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="text" id="nas-short" placeholder="Shortname" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="text" id="nas-secret" placeholder="Shared Secret" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="text" id="nas-desc" placeholder="Deskripsi" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
-            <div class="sm:col-span-2 lg:col-span-4 flex justify-end"><button type="submit" class="px-5 py-2 rounded-lg bg-[#00ffcc] text-gray-950 font-semibold text-sm">Simpan NAS</button></div>
+            <div class="sm:col-span-2 lg:col-span-4 flex justify-end"><button type="submit" id="nas-submit-btn" class="px-5 py-2 rounded-lg bg-[#00ffcc] text-gray-950 font-semibold text-sm">Simpan NAS</button></div>
           </form>
         </div>
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
           <table class="w-full text-left text-sm">
-            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800"><tr><th class="px-4 py-3">IP NAS</th><th class="px-4 py-3">Shortname</th><th class="px-4 py-3">Secret</th><th class="px-4 py-3">Deskripsi</th></tr></thead>
+            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800">
+              <tr><th class="px-4 py-3">IP NAS</th><th class="px-4 py-3">Shortname</th><th class="px-4 py-3">Secret</th><th class="px-4 py-3">Deskripsi</th><th class="px-4 py-3 text-right">Aksi</th></tr>
+            </thead>
             <tbody id="nas-tbody" class="divide-y divide-gray-800/80"></tbody>
           </table>
         </div>
@@ -322,6 +339,128 @@
         </div>
       </section>
 
+      <section id="tab-template" class="tab-panel hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-6 bg-gray-900/90 border border-gray-800 rounded-xl p-5 space-y-4">
+            <div class="border-b border-gray-800 pb-3">
+              <h2 class="text-base font-semibold text-white">Editor Template Cetak Voucher</h2>
+              <p class="text-xs text-gray-400 mt-1">Atur tata letak kolom, garis batas, warna aksen, informasi yang ditampilkan, serta catatan kaki kartu voucher.</p>
+            </div>
+
+            <form onsubmit="handleSaveVoucherTemplate(event)" class="space-y-4">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Jumlah Kolom Cetak</label>
+                  <select id="tpl-columns" onchange="updateVoucherTemplatePreview()" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                    <option value="1">1 Kolom (Struk Lebar)</option>
+                    <option value="2">2 Kolom</option>
+                    <option value="3">3 Kolom</option>
+                    <option value="4" selected>4 Kolom (Standar A4)</option>
+                    <option value="5">5 Kolom</option>
+                    <option value="6">6 Kolom (Mini)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Gaya Garis Kartu</label>
+                  <select id="tpl-border-style" onchange="updateVoucherTemplatePreview()" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                    <option value="dashed" selected>Putus-putus (Dashed)</option>
+                    <option value="solid">Garis Penuh (Solid)</option>
+                    <option value="dotted">Titik-titik (Dotted)</option>
+                    <option value="double">Garis Ganda (Double)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Padding Dalam (px)</label>
+                  <input type="number" id="tpl-padding" value="8" min="4" max="24" oninput="updateVoucherTemplatePreview()" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Warna Garis Kartu</label>
+                  <div class="flex items-center gap-2">
+                    <input type="color" id="tpl-border-color" value="#333333" oninput="updateVoucherTemplatePreview()" class="h-9 w-12 bg-gray-950 border border-gray-700 rounded cursor-pointer" />
+                    <span id="tpl-border-color-label" class="text-xs font-mono text-gray-300">#333333</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Warna Kode Voucher</label>
+                  <div class="flex items-center gap-2">
+                    <input type="color" id="tpl-accent-color" value="#0f172a" oninput="updateVoucherTemplatePreview()" class="h-9 w-12 bg-gray-950 border border-gray-700 rounded cursor-pointer" />
+                    <span id="tpl-accent-color-label" class="text-xs font-mono text-gray-300">#0f172a</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs text-gray-400 mb-1">Tampilkan Password</label>
+                  <select id="tpl-pass-mode" onchange="updateVoucherTemplatePreview()" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                    <option value="different" selected>Jika Beda dari User</option>
+                    <option value="always">Selalu Tampilkan</option>
+                    <option value="never">Jangan Tampilkan</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 text-xs text-gray-300">
+                <label class="flex items-center gap-2 bg-gray-950/70 border border-gray-800 rounded-lg px-3 py-2 cursor-pointer">
+                  <input type="checkbox" id="tpl-show-logo" checked onchange="updateVoucherTemplatePreview()" class="w-4 h-4 accent-[#00ffcc]" />
+                  <span>Logo Gambar</span>
+                </label>
+                <label class="flex items-center gap-2 bg-gray-950/70 border border-gray-800 rounded-lg px-3 py-2 cursor-pointer">
+                  <input type="checkbox" id="tpl-show-title" checked onchange="updateVoucherTemplatePreview()" class="w-4 h-4 accent-[#00ffcc]" />
+                  <span>Judul Header</span>
+                </label>
+                <label class="flex items-center gap-2 bg-gray-950/70 border border-gray-800 rounded-lg px-3 py-2 cursor-pointer">
+                  <input type="checkbox" id="tpl-show-profile" checked onchange="updateVoucherTemplatePreview()" class="w-4 h-4 accent-[#00ffcc]" />
+                  <span>Nama Profil</span>
+                </label>
+                <label class="flex items-center gap-2 bg-gray-950/70 border border-gray-800 rounded-lg px-3 py-2 cursor-pointer">
+                  <input type="checkbox" id="tpl-show-price" checked onchange="updateVoucherTemplatePreview()" class="w-4 h-4 accent-[#00ffcc]" />
+                  <span>Harga Voucher</span>
+                </label>
+                <label class="flex items-center gap-2 bg-gray-950/70 border border-gray-800 rounded-lg px-3 py-2 cursor-pointer">
+                  <input type="checkbox" id="tpl-show-batch" onchange="updateVoucherTemplatePreview()" class="w-4 h-4 accent-[#00ffcc]" />
+                  <span>Kode Batch</span>
+                </label>
+                <label class="flex items-center gap-2 bg-gray-950/70 border border-gray-800 rounded-lg px-3 py-2 cursor-pointer">
+                  <input type="checkbox" id="tpl-show-comment" checked onchange="updateVoucherTemplatePreview()" class="w-4 h-4 accent-[#00ffcc]" />
+                  <span>Comment Cetak</span>
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-xs text-gray-400 mb-1">Catatan Kaki Kartu Voucher (Opsional)</label>
+                <input type="text" id="tpl-footer-note" value="Login di halaman Hotspot / Captive Portal" maxlength="120" oninput="updateVoucherTemplatePreview()" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[#00ffcc] focus:outline-none" />
+              </div>
+
+              <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-800">
+                <button type="button" onclick="handleResetVoucherTemplate()" class="px-4 py-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40 text-xs font-medium">Reset Bawaan</button>
+                <div class="flex gap-2">
+                  <button type="button" onclick="printSampleVoucher()" class="px-4 py-2 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 text-xs font-semibold">🖨 Uji Cetak</button>
+                  <button type="submit" id="tpl-save-btn" class="px-5 py-2 rounded-lg bg-[#00ffcc] hover:bg-emerald-300 text-gray-950 font-semibold text-sm transition">Simpan Template</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div class="lg:col-span-6 bg-gray-900/90 border border-gray-800 rounded-xl p-5 space-y-4">
+            <div class="border-b border-gray-800 pb-3 flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-semibold text-white">Pratinjau Kartu Cetak</h3>
+                <p class="text-xs text-gray-400 mt-0.5">Contoh tampilan kertas putih saat proses cetak voucher berlangsung.</p>
+              </div>
+              <span class="text-[11px] px-2.5 py-1 rounded bg-gray-800 text-gray-300">Live Preview</span>
+            </div>
+            <div class="bg-white text-gray-900 rounded-xl p-4 border border-gray-300 overflow-x-auto">
+              <div id="voucher-template-preview-grid"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="tab-logs" class="tab-panel hidden">
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
           <table class="w-full text-left text-sm">
@@ -333,8 +472,11 @@
 
       <section id="tab-operators" class="tab-panel hidden space-y-6">
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-5">
-          <h2 class="text-base font-semibold text-white mb-3">Buat Akun Admin / Operator</h2>
-          <form onsubmit="handleCreateOperator(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="flex items-center justify-between mb-3">
+            <h2 id="op-form-title" class="text-base font-semibold text-white">Buat Akun Admin / Operator</h2>
+            <button type="button" id="op-cancel-btn" onclick="resetOperatorForm()" class="hidden px-3 py-1 text-xs rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700">Batal Edit</button>
+          </div>
+          <form onsubmit="handleCreateOperator(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <input type="text" id="op-fullname" placeholder="Nama Lengkap" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="text" id="op-username" placeholder="Username Login" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
             <input type="password" id="op-password" placeholder="Password" required class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
@@ -342,12 +484,18 @@
               <option value="operator">Operator (Voucher & Sesi)</option>
               <option value="admin">Admin (Akses Penuh)</option>
             </select>
-            <div class="sm:col-span-2 lg:col-span-4 flex justify-end"><button type="submit" class="px-5 py-2 rounded-lg bg-[#00ffcc] text-gray-950 font-semibold text-sm">+ Tambah Akun</button></div>
+            <select id="op-active" class="bg-gray-950 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+              <option value="1">Aktif</option>
+              <option value="0">Nonaktif</option>
+            </select>
+            <div class="sm:col-span-2 lg:col-span-5 flex justify-end"><button type="submit" id="op-submit-btn" class="px-5 py-2 rounded-lg bg-[#00ffcc] text-gray-950 font-semibold text-sm">+ Tambah Akun</button></div>
           </form>
         </div>
         <div class="bg-gray-900/90 border border-gray-800 rounded-xl overflow-hidden">
           <table class="w-full text-left text-sm">
-            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800"><tr><th class="px-4 py-3">Username</th><th class="px-4 py-3">Nama Lengkap</th><th class="px-4 py-3">Role</th><th class="px-4 py-3 text-right">Aksi</th></tr></thead>
+            <thead class="bg-gray-950/70 text-xs uppercase text-gray-400 border-b border-gray-800">
+              <tr><th class="px-4 py-3">Username</th><th class="px-4 py-3">Nama Lengkap</th><th class="px-4 py-3">Role</th><th class="px-4 py-3">Status</th><th class="px-4 py-3 text-right">Aksi</th></tr>
+            </thead>
             <tbody id="operators-tbody" class="divide-y divide-gray-800/80"></tbody>
           </table>
         </div>
@@ -368,7 +516,24 @@
       logoUrl: '',
       voucherTitle: 'VOUCHER altraRADIUS'
     };
+    let VOUCHER_TEMPLATE = {
+      columns: 4,
+      cardPaddingPx: 8,
+      borderStyle: 'dashed',
+      borderColor: '#333333',
+      accentColor: '#0f172a',
+      showLogo: true,
+      showTitle: true,
+      showPasswordMode: 'different',
+      showProfile: true,
+      showPrice: true,
+      showBatch: false,
+      showComment: true,
+      footerNote: 'Login di halaman Hotspot / Captive Portal'
+    };
     let pendingLogoDataUrl = '';
+    let editingNasId = null;
+    let editingOperatorId = null;
     let state = { users: [], profiles: [], nas: [], sessions: [], logs: [], operators: [] };
 
     function showToast(message, type = 'info') {
@@ -429,6 +594,7 @@
         document.getElementById('brand-voucher-title').value = BRANDING.voucherTitle;
         updateBrandingPreview();
       }
+      updateVoucherTemplatePreview();
     }
 
     async function loadBranding() {
@@ -513,6 +679,171 @@
       }
     }
 
+    function getTemplateFormValues() {
+      const colsEl = document.getElementById('tpl-columns');
+      if (!colsEl) return VOUCHER_TEMPLATE;
+      return {
+        columns: Number(colsEl.value) || 4,
+        borderStyle: document.getElementById('tpl-border-style').value || 'dashed',
+        cardPaddingPx: Math.min(24, Math.max(4, Number(document.getElementById('tpl-padding').value) || 8)),
+        borderColor: document.getElementById('tpl-border-color').value || '#333333',
+        accentColor: document.getElementById('tpl-accent-color').value || '#0f172a',
+        showPasswordMode: document.getElementById('tpl-pass-mode').value || 'different',
+        showLogo: document.getElementById('tpl-show-logo').checked,
+        showTitle: document.getElementById('tpl-show-title').checked,
+        showProfile: document.getElementById('tpl-show-profile').checked,
+        showPrice: document.getElementById('tpl-show-price').checked,
+        showBatch: document.getElementById('tpl-show-batch').checked,
+        showComment: document.getElementById('tpl-show-comment').checked,
+        footerNote: document.getElementById('tpl-footer-note').value.trim()
+      };
+    }
+
+    function applyVoucherTemplateToForm(tpl) {
+      VOUCHER_TEMPLATE = { ...VOUCHER_TEMPLATE, ...tpl };
+      if (!document.getElementById('tpl-columns')) return;
+      document.getElementById('tpl-columns').value = String(VOUCHER_TEMPLATE.columns || 4);
+      document.getElementById('tpl-border-style').value = VOUCHER_TEMPLATE.borderStyle || 'dashed';
+      document.getElementById('tpl-padding').value = VOUCHER_TEMPLATE.cardPaddingPx || 8;
+      document.getElementById('tpl-border-color').value = VOUCHER_TEMPLATE.borderColor || '#333333';
+      document.getElementById('tpl-accent-color').value = VOUCHER_TEMPLATE.accentColor || '#0f172a';
+      document.getElementById('tpl-pass-mode').value = VOUCHER_TEMPLATE.showPasswordMode || 'different';
+      document.getElementById('tpl-show-logo').checked = Boolean(VOUCHER_TEMPLATE.showLogo);
+      document.getElementById('tpl-show-title').checked = Boolean(VOUCHER_TEMPLATE.showTitle);
+      document.getElementById('tpl-show-profile').checked = Boolean(VOUCHER_TEMPLATE.showProfile);
+      document.getElementById('tpl-show-price').checked = Boolean(VOUCHER_TEMPLATE.showPrice);
+      document.getElementById('tpl-show-batch').checked = Boolean(VOUCHER_TEMPLATE.showBatch);
+      document.getElementById('tpl-show-comment').checked = VOUCHER_TEMPLATE.showComment !== false;
+      document.getElementById('tpl-footer-note').value = VOUCHER_TEMPLATE.footerNote || '';
+      updateVoucherTemplatePreview();
+    }
+
+    function buildVoucherPrintHtml(vouchers, tpl) {
+      const cols = Math.min(6, Math.max(1, Number(tpl.columns) || 4));
+      const pad = Math.min(24, Math.max(4, Number(tpl.cardPaddingPx) || 8));
+      const borderStyle = tpl.borderStyle || 'dashed';
+      const borderColor = tpl.borderColor || '#333333';
+      const accentColor = tpl.accentColor || '#0f172a';
+      const logoImg = (tpl.showLogo && BRANDING.logoUrl)
+        ? `<img src="${escapeHtml(BRANDING.logoUrl)}" style="height:22px;margin:0 auto 3px;object-fit:contain;" />`
+        : '';
+      const titleHtml = tpl.showTitle
+        ? `<div style="font-size:10px;font-weight:bold;margin-bottom:2px;">${escapeHtml(BRANDING.voucherTitle || 'VOUCHER altraRADIUS')}</div>`
+        : '';
+
+      const cards = vouchers.map(v => {
+        const showPass = tpl.showPasswordMode === 'always'
+          || (tpl.showPasswordMode === 'different' && v.username !== v.password);
+        const passHtml = showPass
+          ? `<div style="font-size:11px;color:#111827;">Pass: <strong>${escapeHtml(v.password)}</strong></div>`
+          : '';
+        const metaParts = [];
+        if (tpl.showProfile) metaParts.push(escapeHtml(v.profile || '-'));
+        if (tpl.showPrice) metaParts.push(escapeHtml(formatRupiah(v.price)));
+        const metaHtml = metaParts.length
+          ? `<div style="font-size:10px;color:#374151;margin-top:2px;">${metaParts.join(' • ')}</div>`
+          : '';
+        const batchHtml = tpl.showBatch
+          ? `<div style="font-size:9px;color:#6b7280;margin-top:1px;">${escapeHtml(v.batch_code || v.batchCode || '-')}</div>`
+          : '';
+        const commentHtml = (tpl.showComment && v.comment)
+          ? `<div style="font-size:9px;color:#0f172a;font-weight:bold;margin-top:1px;">[${escapeHtml(v.comment)}]</div>`
+          : '';
+        const footerHtml = tpl.footerNote
+          ? `<div style="font-size:9px;color:#4b5563;border-top:1px solid #e5e7eb;margin-top:4px;padding-top:2px;">${escapeHtml(tpl.footerNote)}</div>`
+          : '';
+
+        return `<div style="border:1px ${borderStyle} ${escapeHtml(borderColor)};padding:${pad}px;text-align:center;border-radius:4px;background:#ffffff;">`
+          + logoImg
+          + titleHtml
+          + `<div style="font-size:13px;font-weight:bold;color:${escapeHtml(accentColor)};letter-spacing:0.5px;">${escapeHtml(v.username)}</div>`
+          + passHtml
+          + metaHtml
+          + batchHtml
+          + commentHtml
+          + footerHtml
+          + `</div>`;
+      }).join('');
+
+      return `<div style="display:grid;grid-template-columns:repeat(${cols},minmax(0,1fr));gap:8px;font-family:monospace;">${cards}</div>`;
+    }
+
+    function updateVoucherTemplatePreview() {
+      const tpl = getTemplateFormValues();
+      const bLabel = document.getElementById('tpl-border-color-label');
+      const aLabel = document.getElementById('tpl-accent-color-label');
+      if (bLabel) bLabel.textContent = tpl.borderColor;
+      if (aLabel) aLabel.textContent = tpl.accentColor;
+
+      const grid = document.getElementById('voucher-template-preview-grid');
+      if (!grid) return;
+
+      const sampleData = state.users.length >= 2
+        ? state.users.slice(0, Math.min(4, state.users.length))
+        : [
+            { username: 'VC-8A2F1', password: 'VC-8A2F1', profile: 'Paket-2M', price: 5000, batch_code: 'BATCH-101', comment: 'Agen-Medana' },
+            { username: 'VC-9K4M2', password: 'P4SS99', profile: 'Paket-2M', price: 5000, batch_code: 'BATCH-101', comment: 'Kios-Tanjung' }
+          ];
+      grid.innerHTML = buildVoucherPrintHtml(sampleData, tpl);
+    }
+
+    async function loadVoucherTemplate() {
+      if (!JWT_TOKEN) return;
+      try {
+        const res = await apiFetch('/voucher-template');
+        if (res && res.data) applyVoucherTemplateToForm(res.data);
+      } catch (_) {}
+    }
+
+    async function handleSaveVoucherTemplate(e) {
+      e.preventDefault();
+      const btn = document.getElementById('tpl-save-btn');
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Menyimpan...';
+      try {
+        const payload = getTemplateFormValues();
+        const res = await apiFetch('/voucher-template', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        applyVoucherTemplateToForm(res.data || payload);
+        showToast(res.message || 'Template cetak voucher berhasil disimpan', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }
+
+    async function handleResetVoucherTemplate() {
+      if (!confirm('Kembalikan pengaturan template cetak voucher ke bawaan?')) return;
+      try {
+        const res = await apiFetch('/voucher-template', {
+          method: 'POST',
+          body: JSON.stringify({ reset: true })
+        });
+        applyVoucherTemplateToForm(res.data || {});
+        showToast(res.message || 'Template direset ke bawaan', 'info');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function printSampleVoucher() {
+      const tpl = getTemplateFormValues();
+      const sample = [
+        { username: 'VC-DEMO1', password: 'VC-DEMO1', profile: 'Paket-2M', price: 5000, batch_code: 'DEMO-01', comment: 'Agen-Medana' },
+        { username: 'VC-DEMO2', password: 'PASS-DEMO2', profile: 'Paket-5M', price: 10000, batch_code: 'DEMO-01', comment: 'Kios-Tanjung' }
+      ];
+      const area = document.getElementById('print-area');
+      area.classList.remove('hidden');
+      area.innerHTML = buildVoucherPrintHtml(sample, tpl);
+      window.print();
+      area.classList.add('hidden');
+    }
+
     async function apiFetch(endpoint, options = {}) {
       const headers = { 'Content-Type': 'application/json', ...(JWT_TOKEN ? { 'Authorization': `Bearer ${JWT_TOKEN}` } : {}), ...(options.headers || {}) };
       const res = await fetch(`${API_BASE_URL}${endpoint}`, { ...options, headers });
@@ -570,6 +901,7 @@
       document.getElementById(`tab-${tabName}`).classList.remove('hidden');
       document.querySelectorAll('.tab-btn').forEach(b => { b.className = 'tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-gray-400 hover:text-white border border-gray-800'; });
       document.getElementById(`tab-btn-${tabName}`).className = 'tab-btn px-4 py-2 rounded-lg text-sm font-medium bg-[#00ffcc]/15 text-[#00ffcc] border border-[#00ffcc]/40';
+      if (tabName === 'template') updateVoucherTemplatePreview();
     }
 
     async function loadActiveSessions() {
@@ -590,18 +922,43 @@
       `).join('') : '<tr><td colspan="7" class="px-4 py-6 text-center text-gray-500">Tidak ada sesi aktif</td></tr>';
     }
 
+    function syncCommentFilterOptions() {
+      const select = document.getElementById('filter-comment');
+      if (!select) return;
+      const currentVal = select.value;
+      const comments = [...new Set(state.users.map(u => (u.comment || '').trim()).filter(Boolean))].sort();
+      select.innerHTML = '<option value="">Semua Comment Cetak</option>'
+        + comments.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+      if (comments.includes(currentVal)) select.value = currentVal;
+    }
+
+    function getFilteredUsers() {
+      const kw = (document.getElementById('search-user')?.value || '').toLowerCase();
+      const selectedComment = document.getElementById('filter-comment')?.value || '';
+      return state.users.filter(u => {
+        const matchComment = !selectedComment || (u.comment || '') === selectedComment;
+        const matchKw = !kw
+          || (u.username || '').toLowerCase().includes(kw)
+          || (u.profile || '').toLowerCase().includes(kw)
+          || (u.batch_code || '').toLowerCase().includes(kw)
+          || (u.comment || '').toLowerCase().includes(kw);
+        return matchComment && matchKw;
+      });
+    }
+
     async function loadUsers() {
       const res = await apiFetch('/users');
       state.users = res.data || [];
       document.getElementById('stat-users').textContent = state.users.length;
       const total = state.users.reduce((a, b) => a + (Number(b.price) || 0), 0);
       document.getElementById('stat-revenue').textContent = formatRupiah(total);
+      syncCommentFilterOptions();
       renderUsersTable();
+      updateVoucherTemplatePreview();
     }
 
     function renderUsersTable() {
-      const kw = (document.getElementById('search-user').value || '').toLowerCase();
-      const list = state.users.filter(u => (u.username || '').toLowerCase().includes(kw) || (u.profile || '').toLowerCase().includes(kw) || (u.batch_code || '').toLowerCase().includes(kw));
+      const list = getFilteredUsers();
       const isAdmin = CURRENT_USER?.role === 'admin';
       const tbody = document.getElementById('users-tbody');
       tbody.innerHTML = list.length ? list.map(u => `
@@ -611,10 +968,50 @@
           <td class="px-4 py-3 text-xs text-sky-300">${escapeHtml(u.profile || '-')}</td>
           <td class="px-4 py-3 text-xs text-emerald-400">${formatRupiah(u.price)}</td>
           <td class="px-4 py-3 font-mono text-xs text-gray-400">${escapeHtml(u.batch_code || '-')}</td>
+          <td class="px-4 py-3 text-xs text-amber-300">${u.comment ? escapeHtml(u.comment) : '<span class="text-gray-600">-</span>'}</td>
           <td class="px-4 py-3 text-xs">${escapeHtml(u.status || 'unused')}</td>
           <td class="px-4 py-3 text-right">${isAdmin ? `<button onclick="deleteUser('${escapeHtml(u.username)}')" class="px-2.5 py-1 text-xs rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">Hapus</button>` : '<span class="text-xs text-gray-600">-</span>'}</td>
         </tr>
-      `).join('') : '<tr><td colspan="7" class="px-4 py-6 text-center text-gray-500">Belum ada voucher</td></tr>';
+      `).join('') : '<tr><td colspan="8" class="px-4 py-6 text-center text-gray-500">Belum ada voucher</td></tr>';
+    }
+
+    function resetProfileForm() {
+      document.getElementById('prof-name').value = '';
+      document.getElementById('prof-name').readOnly = false;
+      document.getElementById('prof-rate').value = '';
+      document.getElementById('prof-session').value = '';
+      document.getElementById('prof-maxall').value = '';
+      document.getElementById('prof-quota').value = '';
+      document.getElementById('prof-form-title').textContent = 'Tambah / Edit Profil Paket';
+      document.getElementById('prof-submit-btn').textContent = 'Simpan Profil';
+      document.getElementById('prof-cancel-btn').classList.add('hidden');
+    }
+
+    function editProfile(groupname) {
+      const rows = state.profiles.filter(p => p.groupname === groupname);
+      const getAttr = (attr) => rows.find(r => r.attribute === attr)?.value || '';
+      document.getElementById('prof-name').value = groupname;
+      document.getElementById('prof-name').readOnly = true;
+      document.getElementById('prof-rate').value = getAttr('Mikrotik-Rate-Limit');
+      document.getElementById('prof-session').value = getAttr('Session-Timeout');
+      document.getElementById('prof-maxall').value = getAttr('Max-All-Session');
+      document.getElementById('prof-quota').value = getAttr('Mikrotik-Total-Limit');
+      document.getElementById('prof-form-title').textContent = `Edit Profil Paket: ${groupname}`;
+      document.getElementById('prof-submit-btn').textContent = 'Update Profil';
+      document.getElementById('prof-cancel-btn').classList.remove('hidden');
+      showToast(`Mode edit profil "${groupname}" aktif`, 'info');
+    }
+
+    async function deleteProfile(groupname) {
+      if (!confirm(`Hapus profil paket "${groupname}"?`)) return;
+      try {
+        await apiFetch(`/profiles/${encodeURIComponent(groupname)}`, { method: 'DELETE' });
+        showToast(`Profil ${groupname} dihapus`, 'success');
+        if (document.getElementById('prof-name').value === groupname) resetProfileForm();
+        await loadProfiles();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
     }
 
     async function loadProfiles() {
@@ -625,7 +1022,56 @@
       document.getElementById('vc-profile').innerHTML = optionsHtml;
       document.getElementById('import-default-profile').innerHTML = optionsHtml;
       if (CURRENT_USER?.role === 'admin') {
-        document.getElementById('profiles-tbody').innerHTML = state.profiles.map(p => `<tr><td class="px-4 py-3 font-semibold text-white">${escapeHtml(p.groupname)}</td><td class="px-4 py-3 font-mono text-xs text-[#00ffcc]">${escapeHtml(p.attribute)}</td><td class="px-4 py-3 font-mono text-xs">${escapeHtml(p.value)}</td></tr>`).join('');
+        document.getElementById('profiles-tbody').innerHTML = groups.length ? groups.map(g => {
+          const attrs = state.profiles.filter(p => p.groupname === g).map(p => `<span class="inline-block mr-2 mb-1 px-2 py-0.5 rounded bg-gray-950 border border-gray-800 font-mono text-xs"><span class="text-[#00ffcc]">${escapeHtml(p.attribute)}</span>: ${escapeHtml(p.value)}</span>`).join('');
+          return `
+            <tr class="hover:bg-gray-800/40">
+              <td class="px-4 py-3 font-semibold text-white align-top">${escapeHtml(g)}</td>
+              <td class="px-4 py-3">${attrs || '-'}</td>
+              <td class="px-4 py-3 text-right whitespace-nowrap align-top space-x-1">
+                <button onclick="editProfile('${escapeHtml(g)}')" class="px-2.5 py-1 text-xs rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40">Edit</button>
+                <button onclick="deleteProfile('${escapeHtml(g)}')" class="px-2.5 py-1 text-xs rounded bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40">Hapus</button>
+              </td>
+            </tr>
+          `;
+        }).join('') : '<tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">Belum ada profil paket</td></tr>';
+      }
+    }
+
+    function resetNasForm() {
+      editingNasId = null;
+      document.getElementById('nas-ip').value = '';
+      document.getElementById('nas-short').value = '';
+      document.getElementById('nas-secret').value = '';
+      document.getElementById('nas-desc').value = '';
+      document.getElementById('nas-form-title').textContent = 'Tambah Router NAS MikroTik';
+      document.getElementById('nas-submit-btn').textContent = 'Simpan NAS';
+      document.getElementById('nas-cancel-btn').classList.add('hidden');
+    }
+
+    function editNas(id) {
+      const nas = state.nas.find(n => Number(n.id) === Number(id));
+      if (!nas) return;
+      editingNasId = nas.id;
+      document.getElementById('nas-ip').value = nas.nasname || '';
+      document.getElementById('nas-short').value = nas.shortname || '';
+      document.getElementById('nas-secret').value = nas.secret || '';
+      document.getElementById('nas-desc').value = nas.description || '';
+      document.getElementById('nas-form-title').textContent = `Edit Router NAS: ${nas.shortname || nas.nasname}`;
+      document.getElementById('nas-submit-btn').textContent = 'Update NAS';
+      document.getElementById('nas-cancel-btn').classList.remove('hidden');
+      showToast(`Mode edit NAS "${nas.nasname}" aktif`, 'info');
+    }
+
+    async function deleteNas(id) {
+      if (!confirm('Hapus Router NAS ini?')) return;
+      try {
+        await apiFetch(`/nas/${id}`, { method: 'DELETE' });
+        showToast('Router NAS dihapus', 'success');
+        if (Number(editingNasId) === Number(id)) resetNasForm();
+        await loadNas();
+      } catch (err) {
+        showToast(err.message, 'error');
       }
     }
 
@@ -634,7 +1080,18 @@
       const res = await apiFetch('/nas');
       state.nas = res.data || [];
       document.getElementById('stat-nas').textContent = state.nas.length;
-      document.getElementById('nas-tbody').innerHTML = state.nas.map(n => `<tr><td class="px-4 py-3 font-mono text-[#00ffcc]">${escapeHtml(n.nasname)}</td><td class="px-4 py-3">${escapeHtml(n.shortname || '-')}</td><td class="px-4 py-3 font-mono text-xs text-gray-400">${escapeHtml(n.secret)}</td><td class="px-4 py-3 text-xs text-gray-400">${escapeHtml(n.description || '-')}</td></tr>`).join('');
+      document.getElementById('nas-tbody').innerHTML = state.nas.length ? state.nas.map(n => `
+        <tr class="hover:bg-gray-800/40">
+          <td class="px-4 py-3 font-mono text-[#00ffcc]">${escapeHtml(n.nasname)}</td>
+          <td class="px-4 py-3">${escapeHtml(n.shortname || '-')}</td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-400">${escapeHtml(n.secret)}</td>
+          <td class="px-4 py-3 text-xs text-gray-400">${escapeHtml(n.description || '-')}</td>
+          <td class="px-4 py-3 text-right whitespace-nowrap space-x-1">
+            <button onclick="editNas(${n.id})" class="px-2.5 py-1 text-xs rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40">Edit</button>
+            <button onclick="deleteNas(${n.id})" class="px-2.5 py-1 text-xs rounded bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40">Hapus</button>
+          </td>
+        </tr>
+      `).join('') : '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Belum ada Router NAS</td></tr>';
     }
 
     async function loadTelegramConfig() {
@@ -719,37 +1176,76 @@
       document.getElementById('logs-tbody').innerHTML = state.logs.map(l => `<tr><td class="px-4 py-3 text-xs text-gray-400">${new Date(l.authdate).toLocaleString('id-ID')}</td><td class="px-4 py-3 font-mono text-white">${escapeHtml(l.username)}</td><td class="px-4 py-3 text-xs">${escapeHtml(l.reply)}</td></tr>`).join('');
     }
 
+    function resetOperatorForm() {
+      editingOperatorId = null;
+      document.getElementById('op-fullname').value = '';
+      document.getElementById('op-username').value = '';
+      document.getElementById('op-username').disabled = false;
+      document.getElementById('op-password').value = '';
+      document.getElementById('op-password').required = true;
+      document.getElementById('op-password').placeholder = 'Password';
+      document.getElementById('op-role').value = 'operator';
+      document.getElementById('op-active').value = '1';
+      document.getElementById('op-form-title').textContent = 'Buat Akun Admin / Operator';
+      document.getElementById('op-submit-btn').textContent = '+ Tambah Akun';
+      document.getElementById('op-cancel-btn').classList.add('hidden');
+    }
+
+    function editOperator(id) {
+      const op = state.operators.find(o => Number(o.id) === Number(id));
+      if (!op) return;
+      editingOperatorId = op.id;
+      document.getElementById('op-fullname').value = op.full_name || '';
+      document.getElementById('op-username').value = op.username || '';
+      document.getElementById('op-username').disabled = true;
+      document.getElementById('op-password').value = '';
+      document.getElementById('op-password').required = false;
+      document.getElementById('op-password').placeholder = 'Password baru (kosongkan jika tetap)';
+      document.getElementById('op-role').value = op.role || 'operator';
+      document.getElementById('op-active').value = op.is_active ? '1' : '0';
+      document.getElementById('op-form-title').textContent = `Edit Akun: ${op.username}`;
+      document.getElementById('op-submit-btn').textContent = 'Update Akun';
+      document.getElementById('op-cancel-btn').classList.remove('hidden');
+      showToast(`Mode edit akun "${op.username}" aktif`, 'info');
+    }
+
     async function loadOperators() {
       if (CURRENT_USER?.role !== 'admin') return;
       const res = await apiFetch('/operators');
       state.operators = res.data || [];
       document.getElementById('operators-tbody').innerHTML = state.operators.map(op => `
-        <tr>
+        <tr class="hover:bg-gray-800/40">
           <td class="px-4 py-3 font-mono text-[#00ffcc]">${escapeHtml(op.username)}</td>
           <td class="px-4 py-3 text-white">${escapeHtml(op.full_name)}</td>
           <td class="px-4 py-3 text-xs uppercase">${escapeHtml(op.role)}</td>
-          <td class="px-4 py-3 text-right">${op.id !== CURRENT_USER.id ? `<button onclick="deleteOperator(${op.id})" class="px-2.5 py-1 text-xs rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">Hapus</button>` : '<span class="text-xs text-gray-500">Aktif</span>'}</td>
+          <td class="px-4 py-3 text-xs">${op.is_active ? '<span class="text-emerald-400">Aktif</span>' : '<span class="text-rose-400">Nonaktif</span>'}</td>
+          <td class="px-4 py-3 text-right whitespace-nowrap space-x-1">
+            <button onclick="editOperator(${op.id})" class="px-2.5 py-1 text-xs rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40">Edit</button>
+            ${op.id !== CURRENT_USER.id ? `<button onclick="deleteOperator(${op.id})" class="px-2.5 py-1 text-xs rounded bg-rose-500/15 text-rose-300 border border-rose-500/30">Hapus</button>` : '<span class="text-xs text-gray-500">Anda</span>'}
+          </td>
         </tr>
       `).join('');
     }
 
     async function refreshAllData() {
-      try { await Promise.all([loadBranding(), loadActiveSessions(), loadUsers(), loadProfiles(), loadNas(), loadTelegramConfig(), loadAuthLogs(), loadOperators()]); }
+      try { await Promise.all([loadBranding(), loadVoucherTemplate(), loadActiveSessions(), loadUsers(), loadProfiles(), loadNas(), loadTelegramConfig(), loadAuthLogs(), loadOperators()]); }
       catch (err) { showToast(err.message, 'error'); }
     }
 
     async function handleGenerateVouchers(e) {
       e.preventDefault();
       try {
+        const commentVal = document.getElementById('vc-comment').value.trim();
         const res = await apiFetch('/vouchers/generate', {
           method: 'POST',
           body: JSON.stringify({
             count: Number(document.getElementById('vc-count').value), prefix: document.getElementById('vc-prefix').value,
             length: Number(document.getElementById('vc-length').value), profile: document.getElementById('vc-profile').value,
-            price: Number(document.getElementById('vc-price').value), sameUserPass: document.getElementById('vc-same').value === 'true'
+            price: Number(document.getElementById('vc-price').value), sameUserPass: document.getElementById('vc-same').value === 'true',
+            comment: commentVal
           })
         });
-        showToast(`Berhasil membuat ${res.count} voucher (${res.batchCode})`, 'success');
+        showToast(`Berhasil membuat ${res.count} voucher (${res.batchCode}${commentVal ? ' • ' + commentVal : ''})`, 'success');
         await loadUsers();
       } catch (err) { showToast(err.message, 'error'); }
     }
@@ -776,10 +1272,11 @@
 
     function downloadSampleCSV() {
       const sample = [
-        'Username,Password,Profil,Harga,Batch,Status',
-        'VC-1001,VC-1001,Paket-2M,5000,IMPORT-01,unused',
-        'VC-1002,PASS1002,Paket-2M,5000,IMPORT-01,unused'
-      ].join('\n');
+        'Username,Password,Profil,Harga,Batch,Status,Comment',
+        'VC-1001,VC-1001,Paket-2M,5000,IMPORT-01,unused,Agen-Medana',
+        'VC-1002,PASS1002,Paket-2M,5000,IMPORT-01,unused,Kios-Tanjung'
+      ].join('
+');
       const blob = new Blob([sample], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -800,7 +1297,8 @@
 
       try {
         const text = await file.text();
-        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        const lines = text.split(/?
+/).map(l => l.trim()).filter(Boolean);
         if (lines.length === 0) throw new Error('File CSV kosong');
 
         const delimiter = lines[0].includes(';') && !lines[0].includes(',') ? ';' : ',';
@@ -808,7 +1306,7 @@
         const hasHeader = firstCols.includes('username') || firstCols.includes('user');
 
         let startIndex = 0;
-        let colMap = { username: 0, password: 1, profile: 2, price: 3, batch: 4, status: 5 };
+        let colMap = { username: 0, password: 1, profile: 2, price: 3, batch: 4, status: 5, comment: 6 };
 
         if (hasHeader) {
           startIndex = 1;
@@ -818,7 +1316,8 @@
             profile: firstCols.findIndex(c => c === 'profil' || c === 'profile' || c === 'paket'),
             price: firstCols.findIndex(c => c === 'harga' || c === 'price'),
             batch: firstCols.findIndex(c => c === 'batch' || c === 'batch_code'),
-            status: firstCols.findIndex(c => c === 'status')
+            status: firstCols.findIndex(c => c === 'status'),
+            comment: firstCols.findIndex(c => c === 'comment' || c === 'catatan' || c === 'label')
           };
         }
 
@@ -833,7 +1332,8 @@
             profile: colMap.profile >= 0 && cols[colMap.profile] ? cols[colMap.profile] : defaultProfile,
             price: colMap.price >= 0 ? Number(cols[colMap.price]) || 0 : 0,
             batch: colMap.batch >= 0 ? cols[colMap.batch] || '' : '',
-            status: colMap.status >= 0 ? cols[colMap.status] || 'unused' : 'unused'
+            status: colMap.status >= 0 ? cols[colMap.status] || 'unused' : 'unused',
+            comment: colMap.comment >= 0 ? cols[colMap.comment] || '' : ''
           });
         }
 
@@ -871,21 +1371,26 @@
             dataLimitBytes: document.getElementById('prof-quota').value || null
           })
         });
-        showToast('Profil paket disimpan', 'success'); e.target.reset(); await loadProfiles();
+        showToast('Profil paket disimpan', 'success'); resetProfileForm(); await loadProfiles();
       } catch (err) { showToast(err.message, 'error'); }
     }
 
     async function handleAddNas(e) {
       e.preventDefault();
       try {
-        await apiFetch('/nas', {
-          method: 'POST',
-          body: JSON.stringify({
-            nasname: document.getElementById('nas-ip').value.trim(), shortname: document.getElementById('nas-short').value.trim(),
-            secret: document.getElementById('nas-secret').value.trim(), description: document.getElementById('nas-desc').value.trim()
-          })
-        });
-        showToast('Router NAS ditambahkan', 'success'); e.target.reset(); await loadNas();
+        const payload = {
+          nasname: document.getElementById('nas-ip').value.trim(), shortname: document.getElementById('nas-short').value.trim(),
+          secret: document.getElementById('nas-secret').value.trim(), description: document.getElementById('nas-desc').value.trim()
+        };
+        if (editingNasId) {
+          await apiFetch(`/nas/${editingNasId}`, { method: 'PUT', body: JSON.stringify(payload) });
+          showToast('Router NAS diperbarui', 'success');
+        } else {
+          await apiFetch('/nas', { method: 'POST', body: JSON.stringify(payload) });
+          showToast('Router NAS ditambahkan', 'success');
+        }
+        resetNasForm();
+        await loadNas();
       } catch (err) { showToast(err.message, 'error'); }
     }
 
@@ -910,40 +1415,59 @@
     async function handleCreateOperator(e) {
       e.preventDefault();
       try {
-        await apiFetch('/operators', {
-          method: 'POST',
-          body: JSON.stringify({
-            fullName: document.getElementById('op-fullname').value.trim(), username: document.getElementById('op-username').value.trim(),
-            password: document.getElementById('op-password').value, role: document.getElementById('op-role').value
-          })
-        });
-        showToast('Akun operator berhasil dibuat', 'success'); e.target.reset(); await loadOperators();
+        if (editingOperatorId) {
+          await apiFetch(`/operators/${editingOperatorId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+              fullName: document.getElementById('op-fullname').value.trim(),
+              password: document.getElementById('op-password').value,
+              role: document.getElementById('op-role').value,
+              isActive: Number(document.getElementById('op-active').value) === 1
+            })
+          });
+          showToast('Akun operator diperbarui', 'success');
+        } else {
+          await apiFetch('/operators', {
+            method: 'POST',
+            body: JSON.stringify({
+              fullName: document.getElementById('op-fullname').value.trim(),
+              username: document.getElementById('op-username').value.trim(),
+              password: document.getElementById('op-password').value,
+              role: document.getElementById('op-role').value
+            })
+          });
+          showToast('Akun operator berhasil dibuat', 'success');
+        }
+        resetOperatorForm();
+        await loadOperators();
       } catch (err) { showToast(err.message, 'error'); }
     }
 
     async function deleteOperator(id) {
       if (!confirm('Hapus akun operator ini?')) return;
-      try { await apiFetch(`/operators/${id}`, { method: 'DELETE' }); showToast('Akun operator dihapus', 'success'); await loadOperators(); }
+      try { await apiFetch(`/operators/${id}`, { method: 'DELETE' }); showToast('Akun operator dihapus', 'success'); if (Number(editingOperatorId) === Number(id)) resetOperatorForm(); await loadOperators(); }
       catch (err) { showToast(err.message, 'error'); }
     }
 
     function exportUsersCSV() {
-      if (!state.users.length) return showToast('Tidak ada data', 'error');
-      const rows = [['Username', 'Password', 'Profil', 'Harga', 'Batch', 'Status']];
-      state.users.forEach(u => rows.push([u.username, u.password, u.profile || '', u.price || 0, u.batch_code || '', u.status || 'unused']));
-      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const list = getFilteredUsers();
+      if (!list.length) return showToast('Tidak ada data', 'error');
+      const rows = [['Username', 'Password', 'Profil', 'Harga', 'Batch', 'Comment', 'Status']];
+      list.forEach(u => rows.push([u.username, u.password, u.profile || '', u.price || 0, u.batch_code || '', u.comment || '', u.status || 'unused']));
+      const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('
+');
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `altraradius_voucher_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
     }
 
     function printVouchers() {
-      if (!state.users.length) return showToast('Tidak ada voucher', 'error');
+      const list = getFilteredUsers();
+      if (!list.length) return showToast('Tidak ada voucher sesuai filter', 'error');
       const area = document.getElementById('print-area');
       area.classList.remove('hidden');
-      const logoImg = BRANDING.logoUrl ? `<img src="${escapeHtml(BRANDING.logoUrl)}" style="height:22px;margin:0 auto 2px;object-fit:contain;" />` : '';
-      area.innerHTML = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-family:monospace;">` +
-        state.users.map(v => `<div style="border:1px dashed #333;padding:8px;text-align:center;">${logoImg}<div style="font-size:10px;font-weight:bold;">${escapeHtml(BRANDING.voucherTitle || 'VOUCHER altraRADIUS')}</div><div style="font-size:13px;font-weight:bold;">${escapeHtml(v.username)}</div>${v.username !== v.password ? `<div style="font-size:11px;">Pass: ${escapeHtml(v.password)}</div>` : ''}<div style="font-size:10px;">${escapeHtml(v.profile || '-')} • ${formatRupiah(v.price)}</div></div>`).join('') + `</div>`;
-      window.print(); area.classList.add('hidden');
+      area.innerHTML = buildVoucherPrintHtml(list, VOUCHER_TEMPLATE);
+      window.print();
+      area.classList.add('hidden');
     }
 
     window.addEventListener('DOMContentLoaded', async () => {
