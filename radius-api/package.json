@@ -1,7 +1,7 @@
 {
   "name": "altraradius-api",
-  "version": "1.5.0",
-  "description": "Backend REST API Manajemen altraRADIUS (FreeRADIUS 3 Hotspot) dengan JWT, RBAC, Import/Export CSV, Bot Telegram & Kustomisasi Logo/Branding",
+  "version": "1.7.0",
+  "description": "Backend REST API Manajemen altraRADIUS (FreeRADIUS 3 Hotspot) dengan JWT, RBAC, Import/Export CSV, Bot Telegram, Logo/Branding, Editor Template Voucher, Comment Batch & Edit CRUD",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

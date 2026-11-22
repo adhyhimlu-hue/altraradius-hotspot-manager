@@ -15,6 +15,7 @@ app.use(express.json({ limit: '5mb' }));
 
 const PUBLIC_DIR = path.join(__dirname, '../public');
 const BRANDING_FILE_PATH = path.join(PUBLIC_DIR, 'branding.json');
+const VOUCHER_TEMPLATE_PATH = path.join(PUBLIC_DIR, 'voucher-template.json');
 app.use(express.static(PUBLIC_DIR));
 
 const ENV_FILE_PATH = path.join(__dirname, '.env');
@@ -27,6 +28,22 @@ const DEFAULT_BRANDING = {
   logoText: 'aR',
   logoUrl: '',
   voucherTitle: 'VOUCHER altraRADIUS'
+};
+
+const DEFAULT_VOUCHER_TEMPLATE = {
+  columns: 4,
+  cardPaddingPx: 8,
+  borderStyle: 'dashed',
+  borderColor: '#333333',
+  accentColor: '#0f172a',
+  showLogo: true,
+  showTitle: true,
+  showPasswordMode: 'different',
+  showProfile: true,
+  showPrice: true,
+  showBatch: false,
+  showComment: true,
+  footerNote: 'Login di halaman Hotspot / Captive Portal'
 };
 
 function readBranding() {
@@ -47,6 +64,48 @@ function writeBranding(data) {
   return merged;
 }
 
+function readVoucherTemplate() {
+  try {
+    if (fs.existsSync(VOUCHER_TEMPLATE_PATH)) {
+      const raw = JSON.parse(fs.readFileSync(VOUCHER_TEMPLATE_PATH, 'utf8'));
+      return { ...DEFAULT_VOUCHER_TEMPLATE, ...raw };
+    }
+  } catch (err) {
+    console.error('Gagal membaca voucher-template.json:', err.message);
+  }
+  return { ...DEFAULT_VOUCHER_TEMPLATE };
+}
+
+function writeVoucherTemplate(data) {
+  const allowedBorders = ['dashed', 'solid', 'dotted', 'double'];
+  const allowedPassModes = ['always', 'different', 'never'];
+  const cols = Math.min(6, Math.max(1, Number(data.columns) || DEFAULT_VOUCHER_TEMPLATE.columns));
+  const pad = Math.min(24, Math.max(4, Number(data.cardPaddingPx) || DEFAULT_VOUCHER_TEMPLATE.cardPaddingPx));
+  const borderStyle = allowedBorders.includes(data.borderStyle) ? data.borderStyle : DEFAULT_VOUCHER_TEMPLATE.borderStyle;
+  const showPasswordMode = allowedPassModes.includes(data.showPasswordMode) ? data.showPasswordMode : DEFAULT_VOUCHER_TEMPLATE.showPasswordMode;
+
+  const merged = {
+    ...DEFAULT_VOUCHER_TEMPLATE,
+    ...data,
+    columns: cols,
+    cardPaddingPx: pad,
+    borderStyle,
+    showPasswordMode,
+    borderColor: typeof data.borderColor === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(data.borderColor.trim()) ? data.borderColor.trim() : DEFAULT_VOUCHER_TEMPLATE.borderColor,
+    accentColor: typeof data.accentColor === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(data.accentColor.trim()) ? data.accentColor.trim() : DEFAULT_VOUCHER_TEMPLATE.accentColor,
+    showLogo: typeof data.showLogo === 'boolean' ? data.showLogo : DEFAULT_VOUCHER_TEMPLATE.showLogo,
+    showTitle: typeof data.showTitle === 'boolean' ? data.showTitle : DEFAULT_VOUCHER_TEMPLATE.showTitle,
+    showProfile: typeof data.showProfile === 'boolean' ? data.showProfile : DEFAULT_VOUCHER_TEMPLATE.showProfile,
+    showPrice: typeof data.showPrice === 'boolean' ? data.showPrice : DEFAULT_VOUCHER_TEMPLATE.showPrice,
+    showBatch: typeof data.showBatch === 'boolean' ? data.showBatch : DEFAULT_VOUCHER_TEMPLATE.showBatch,
+    showComment: typeof data.showComment === 'boolean' ? data.showComment : DEFAULT_VOUCHER_TEMPLATE.showComment,
+    footerNote: typeof data.footerNote === 'string' ? data.footerNote.trim().slice(0, 120) : DEFAULT_VOUCHER_TEMPLATE.footerNote
+  };
+
+  fs.writeFileSync(VOUCHER_TEMPLATE_PATH, JSON.stringify(merged, null, 2), 'utf8');
+  return merged;
+}
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -64,7 +123,8 @@ function updateEnvFile(updates) {
   if (fs.existsSync(ENV_FILE_PATH)) {
     content = fs.readFileSync(ENV_FILE_PATH, 'utf8');
   }
-  const lines = content ? content.split(/\r?\n/) : [];
+  const lines = content ? content.split(/?
+/) : [];
   const handledKeys = new Set();
 
   const updatedLines = lines.map((line) => {
@@ -85,7 +145,22 @@ function updateEnvFile(updates) {
     }
   }
 
-  fs.writeFileSync(ENV_FILE_PATH, updatedLines.join('\n').replace(/\n*$/, '\n'), 'utf8');
+  fs.writeFileSync(ENV_FILE_PATH, updatedLines.join('
+').replace(/
+*$/, '
+'), 'utf8');
+}
+
+async function ensureSchemaMigrations() {
+  try {
+    const [cols] = await pool.query("SHOW COLUMNS FROM app_vouchers_meta LIKE 'comment'");
+    if (cols.length === 0) {
+      await pool.query("ALTER TABLE app_vouchers_meta ADD COLUMN comment VARCHAR(100) DEFAULT NULL AFTER batch_code");
+      console.log('Migrasi kolom app_vouchers_meta.comment berhasil.');
+    }
+  } catch (err) {
+    console.error('Gagal memeriksa migrasi kolom comment:', err.message);
+  }
 }
 
 async function ensureDefaultAdmin() {
@@ -146,7 +221,6 @@ function generateCode(length = 6) {
   return result;
 }
 
-// Endpoint publik agar halaman login & dashboard bisa langsung memuat logo/branding
 app.get('/api/branding', (req, res) => {
   res.json({ success: true, data: readBranding() });
 });
@@ -198,6 +272,24 @@ app.post('/api/branding', authMiddleware, requireRole('admin'), (req, res) => {
   res.json({ success: true, message: 'Logo & identitas aplikasi berhasil diperbarui', data: saved });
 });
 
+app.get('/api/voucher-template', authMiddleware, (req, res) => {
+  res.json({ success: true, data: readVoucherTemplate() });
+});
+
+app.post('/api/voucher-template', authMiddleware, requireRole('admin'), (req, res) => {
+  try {
+    const body = req.body || {};
+    if (body.reset) {
+      fs.writeFileSync(VOUCHER_TEMPLATE_PATH, JSON.stringify(DEFAULT_VOUCHER_TEMPLATE, null, 2), 'utf8');
+      return res.json({ success: true, message: 'Template cetak voucher dikembalikan ke bawaan', data: { ...DEFAULT_VOUCHER_TEMPLATE } });
+    }
+    const saved = writeVoucherTemplate(body);
+    res.json({ success: true, message: 'Template cetak voucher berhasil disimpan', data: saved });
+  } catch (err) {
+    res.status(500).json({ error: 'Gagal menyimpan template voucher: ' + err.message });
+  }
+});
+
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username dan password wajib diisi' });
@@ -241,6 +333,33 @@ app.post('/api/operators', authMiddleware, requireRole('admin'), async (req, res
   }
 });
 
+app.put('/api/operators/:id', authMiddleware, requireRole('admin'), async (req, res) => {
+  const targetId = Number(req.params.id);
+  const { fullName, role, password, isActive } = req.body || {};
+  if (!fullName) return res.status(400).json({ error: 'Nama lengkap wajib diisi' });
+  const allowedRoles = ['admin', 'operator'];
+  const nextRole = allowedRoles.includes(role) ? role : 'operator';
+  const activeVal = typeof isActive === 'boolean' ? (isActive ? 1 : 0) : (Number(isActive) === 0 ? 0 : 1);
+
+  try {
+    if (password && String(password).trim().length > 0) {
+      const hash = await bcrypt.hash(String(password).trim(), 10);
+      await pool.query(
+        'UPDATE app_operators SET full_name = ?, role = ?, password_hash = ?, is_active = ? WHERE id = ?',
+        [fullName.trim(), nextRole, hash, activeVal, targetId]
+      );
+    } else {
+      await pool.query(
+        'UPDATE app_operators SET full_name = ?, role = ?, is_active = ? WHERE id = ?',
+        [fullName.trim(), nextRole, activeVal, targetId]
+      );
+    }
+    res.json({ success: true, message: 'Akun operator berhasil diperbarui' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/operators/:id', authMiddleware, requireRole('admin'), async (req, res) => {
   const targetId = Number(req.params.id);
   if (req.user.id === targetId) return res.status(400).json({ error: 'Tidak dapat menghapus akun sendiri' });
@@ -278,11 +397,21 @@ app.post('/api/profiles', authMiddleware, requireRole('admin'), async (req, res)
   } finally { conn.release(); }
 });
 
+app.delete('/api/profiles/:name', authMiddleware, requireRole('admin'), async (req, res) => {
+  const groupname = decodeURIComponent(req.params.name);
+  try {
+    await pool.query('DELETE FROM radgroupreply WHERE groupname = ?', [groupname]);
+    res.json({ success: true, message: `Profil ${groupname} berhasil dihapus` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/users', authMiddleware, async (req, res) => {
   try {
     const [rows] = await pool.query(`
       SELECT rc.username, rc.value AS password, rug.groupname AS profile,
-             meta.price, meta.batch_code, meta.status, meta.created_at
+             meta.price, meta.batch_code, meta.comment, meta.status, meta.created_at
       FROM radcheck rc
       LEFT JOIN radusergroup rug ON rc.username = rug.username
       LEFT JOIN app_vouchers_meta meta ON rc.username = meta.username
@@ -294,9 +423,10 @@ app.get('/api/users', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/vouchers/generate', authMiddleware, requireRole('admin', 'operator'), async (req, res) => {
-  const { count = 10, prefix = 'VC-', length = 5, profile, price = 0, sameUserPass = true } = req.body;
+  const { count = 10, prefix = 'VC-', length = 5, profile, price = 0, sameUserPass = true, comment = '' } = req.body;
   if (!profile) return res.status(400).json({ error: 'Profil paket harus dipilih' });
   const batchCode = `BATCH-${Date.now().toString().slice(-6)}`;
+  const cleanComment = String(comment || '').trim().slice(0, 100) || null;
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -306,14 +436,14 @@ app.post('/api/vouchers/generate', authMiddleware, requireRole('admin', 'operato
       const password = sameUserPass ? code : generateCode(length);
       radcheckValues.push([code, 'Cleartext-Password', ':=', password]);
       radusergroupValues.push([code, profile, 1]);
-      metaValues.push([code, profile, price, batchCode, 'unused']);
-      createdList.push({ username: code, password, profile, price, batchCode });
+      metaValues.push([code, profile, price, batchCode, cleanComment, 'unused']);
+      createdList.push({ username: code, password, profile, price, batchCode, comment: cleanComment });
     }
     await conn.query('INSERT INTO radcheck (username, attribute, op, value) VALUES ?', [radcheckValues]);
     await conn.query('INSERT INTO radusergroup (username, groupname, priority) VALUES ?', [radusergroupValues]);
-    await conn.query('INSERT INTO app_vouchers_meta (username, profile_name, price, batch_code, status) VALUES ?', [metaValues]);
+    await conn.query('INSERT INTO app_vouchers_meta (username, profile_name, price, batch_code, comment, status) VALUES ?', [metaValues]);
     await conn.commit();
-    res.json({ success: true, batchCode, count: createdList.length, vouchers: createdList });
+    res.json({ success: true, batchCode, comment: cleanComment, count: createdList.length, vouchers: createdList });
   } catch (err) {
     await conn.rollback();
     res.status(500).json({ error: err.message });
@@ -341,6 +471,7 @@ app.post('/api/vouchers/import', authMiddleware, requireRole('admin', 'operator'
       const profile = String(item.profile || defaultProfile || '').trim();
       const price = Math.max(0, Number(item.price) || 0);
       const itemBatch = String(item.batch || item.batch_code || batchCode).trim();
+      const itemComment = String(item.comment || '').trim().slice(0, 100) || null;
       const rawStatus = String(item.status || 'unused').trim().toLowerCase();
       const status = ['unused', 'active', 'expired'].includes(rawStatus) ? rawStatus : 'unused';
 
@@ -366,10 +497,10 @@ app.post('/api/vouchers/import', authMiddleware, requireRole('admin', 'operator'
         await conn.query('DELETE FROM radusergroup WHERE username = ?', [username]);
         await conn.query('INSERT INTO radusergroup (username, groupname, priority) VALUES (?, ?, 1)', [username, profile]);
         await conn.query(
-          `INSERT INTO app_vouchers_meta (username, profile_name, price, batch_code, status)
-           VALUES (?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE profile_name = VALUES(profile_name), price = VALUES(price), batch_code = VALUES(batch_code), status = VALUES(status)`,
-          [username, profile, price, itemBatch, status]
+          `INSERT INTO app_vouchers_meta (username, profile_name, price, batch_code, comment, status)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE profile_name = VALUES(profile_name), price = VALUES(price), batch_code = VALUES(batch_code), comment = VALUES(comment), status = VALUES(status)`,
+          [username, profile, price, itemBatch, itemComment, status]
         );
         updated++;
       } else {
@@ -379,8 +510,8 @@ app.post('/api/vouchers/import', authMiddleware, requireRole('admin', 'operator'
         );
         await conn.query('INSERT INTO radusergroup (username, groupname, priority) VALUES (?, ?, 1)', [username, profile]);
         await conn.query(
-          'INSERT INTO app_vouchers_meta (username, profile_name, price, batch_code, status) VALUES (?, ?, ?, ?, ?)',
-          [username, profile, price, itemBatch, status]
+          'INSERT INTO app_vouchers_meta (username, profile_name, price, batch_code, comment, status) VALUES (?, ?, ?, ?, ?, ?)',
+          [username, profile, price, itemBatch, itemComment, status]
         );
         imported++;
       }
@@ -431,8 +562,30 @@ app.post('/api/nas', authMiddleware, requireRole('admin'), async (req, res) => {
   const { nasname, shortname, secret, description } = req.body;
   if (!nasname || !secret) return res.status(400).json({ error: 'IP Address (nasname) dan Secret wajib diisi' });
   try {
-    await pool.query('INSERT INTO nas (nasname, shortname, type, secret, description) VALUES (?, ?, ?, ?, ?)', [nasname, shortname || nasname, 'other', secret, description || 'MikroTik Hotspot']);
+    await pool.query('INSERT INTO nas (nasname, shortname, type, secret, description) VALUES (?, ?, ?, ?, ?)', [nasname.trim(), (shortname || nasname).trim(), 'other', secret.trim(), (description || 'MikroTik Hotspot').trim()]);
     res.json({ success: true, message: 'Router NAS berhasil ditambahkan' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.put('/api/nas/:id', authMiddleware, requireRole('admin'), async (req, res) => {
+  const id = Number(req.params.id);
+  const { nasname, shortname, secret, description } = req.body || {};
+  if (!nasname || !secret) return res.status(400).json({ error: 'IP Address (nasname) dan Secret wajib diisi' });
+  try {
+    const [result] = await pool.query(
+      'UPDATE nas SET nasname = ?, shortname = ?, secret = ?, description = ? WHERE id = ?',
+      [nasname.trim(), (shortname || nasname).trim(), secret.trim(), (description || 'MikroTik Hotspot').trim(), id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Router NAS tidak ditemukan' });
+    res.json({ success: true, message: 'Router NAS berhasil diperbarui' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.delete('/api/nas/:id', authMiddleware, requireRole('admin'), async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    await pool.query('DELETE FROM nas WHERE id = ?', [id]);
+    res.json({ success: true, message: 'Router NAS berhasil dihapus' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -518,13 +671,14 @@ app.post('/api/notifications/config', authMiddleware, requireRole('admin'), asyn
 
 app.post('/api/notifications/test', authMiddleware, requireRole('admin'), async (req, res) => {
   if (!notifier.enabled) return res.status(400).json({ error: 'TELEGRAM_BOT_TOKEN atau TELEGRAM_CHAT_ID belum diatur' });
-  const ok = await notifier.sendMessage('🧪 <b>Tes Notifikasi altraRADIUS</b>\nKoneksi bot Telegram dari backend Node.js berhasil.');
+  const ok = await notifier.sendMessage('🧪 <b>Tes Notifikasi altraRADIUS</b>
+Koneksi bot Telegram dari backend Node.js berhasil.');
   if (!ok) return res.status(502).json({ error: 'Gagal mengirim pesan uji ke Telegram. Periksa kembali Bot Token & Chat ID.' });
   res.json({ success: true, message: 'Pesan uji berhasil dikirim ke Telegram' });
 });
 
 const PORT = process.env.PORT || 3030;
-ensureDefaultAdmin().then(async () => {
+ensureSchemaMigrations().then(() => ensureDefaultAdmin()).then(async () => {
   await notifier.start();
   app.listen(PORT, () => console.log(`altraRADIUS Management API berjalan di port ${PORT}`));
 });
