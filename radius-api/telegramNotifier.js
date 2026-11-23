@@ -138,8 +138,7 @@ class TelegramNotifier {
           `• <b>MAC:</b> <code>${this.escapeHtml(s.callingstationid || '-')}</code>`,
           `• <b>NAS:</b> <code>${this.escapeHtml(s.nasipaddress || '-')}</code>`,
           `• <b>Waktu:</b> ${this.escapeHtml(s.acctstarttime ? new Date(s.acctstarttime).toLocaleString('id-ID') : '-')}`
-        ].join('
-'));
+        ].join('\n'));
         if (s.acctstoptime) this.notifiedStopIds.add(Number(s.radacctid));
       }
 
@@ -166,8 +165,7 @@ class TelegramNotifier {
           `• <b>Durasi:</b> ${this.escapeHtml(this.formatDuration(s.acctsessiontime))}`,
           `• <b>Pemakaian:</b> ↓ ${this.formatBytes(s.acctoutputoctets)} / ↑ ${this.formatBytes(s.acctinputoctets)}`,
           `• <b>Alasan:</b> <code>${this.escapeHtml(s.acctterminatecause || '-')}</code>`
-        ].join('
-'));
+        ].join('\n'));
       }
     } catch (err) {
       console.error('[TelegramNotifier] Gagal cek sesi:', err.message);
@@ -196,15 +194,13 @@ class TelegramNotifier {
                 `• <b>Router:</b> <b>${this.escapeHtml(label)}</b>`,
                 `• <b>IP NAS:</b> <code>${this.escapeHtml(nas.nasname)}</code>`,
                 `• <b>Keterangan:</b> ${this.escapeHtml(nas.description || '-')}`
-              ].join('
-')
+              ].join('\n')
             : [
                 '⚠️ <b>ROUTER NAS OFFLINE (DOWN)</b>',
                 `• <b>Router:</b> <b>${this.escapeHtml(label)}</b>`,
                 `• <b>IP NAS:</b> <code>${this.escapeHtml(nas.nasname)}</code>`,
                 `• <b>Keterangan:</b> ${this.escapeHtml(nas.description || '-')}`
-              ].join('
-'));
+              ].join('\n'));
         }
         this.nasStatusMap.set(nas.nasname, currentStatus);
       }
