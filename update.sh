@@ -12,7 +12,6 @@ if [ ! -d "$API_DIR" ]; then
 fi
 
 echo "Memperbarui file aplikasi altraRADIUS di $APP_DIR (tanpa menimpa .env & database)..."
-cp "$SCRIPT_DIR/schema.sql" "$APP_DIR/schema.sql"
 cp "$SCRIPT_DIR/radius-api/package.json" "$API_DIR/package.json"
 cp "$SCRIPT_DIR/radius-api/server.js" "$API_DIR/server.js"
 cp "$SCRIPT_DIR/radius-api/telegramNotifier.js" "$API_DIR/telegramNotifier.js"

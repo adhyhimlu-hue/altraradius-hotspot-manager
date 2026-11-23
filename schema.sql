@@ -106,7 +106,6 @@ CREATE TABLE IF NOT EXISTS app_vouchers_meta (
   profile_name VARCHAR(64) NOT NULL,
   price DECIMAL(12,2) NOT NULL DEFAULT 0,
   batch_code VARCHAR(32) DEFAULT NULL,
-  comment VARCHAR(100) DEFAULT NULL,
   status ENUM('unused', 'active', 'expired') DEFAULT 'unused',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
